@@ -2,13 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import MacroTotals from '../components/MacroTotals.jsx';
 import { getStoreFromUrl } from '../utils/nutritionParser.js';
+import { getMeal } from '../utils/api.js';
 
 // Helper functions - inline
-function getMeals() {
-  const mealsData = localStorage.getItem('meals');
-  return mealsData ? JSON.parse(mealsData) : [];
-}
-
 function calculateIngredientTotals(ingredient) {
   return {
     calories: (ingredient.caloriesPerServing || 0) * (ingredient.servingsUsed || 0),
@@ -40,24 +36,20 @@ function MealView({ user, onLogout }) {
   const [sortDirection, setSortDirection] = useState('asc'); // 'asc' or 'desc'
 
   useEffect(() => {
-    const allMeals = getMeals();
-    const foundMeal = allMeals.find(m => m.id === id);
-    
-    if (!foundMeal) {
-      setError('Meal not found');
-      setLoading(false);
-      return;
-    }
+    loadMeal();
+  }, [id]);
 
-    if (foundMeal.userId !== user.id) {
-      setError('Access denied');
+  const loadMeal = async () => {
+    try {
+      setLoading(true);
+      const foundMeal = await getMeal(id);
+      setMeal(foundMeal);
+    } catch (err) {
+      setError(err.message || 'Meal not found');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setMeal(foundMeal);
-    setLoading(false);
-  }, [id, user.id]);
+  };
 
   const handleSort = (field) => {
     if (sortBy === field) {

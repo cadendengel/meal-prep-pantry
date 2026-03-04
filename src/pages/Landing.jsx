@@ -1,85 +1,56 @@
 import React, { useState } from 'react';
-
-// Helper functions for user management - inline
-function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
-
-function getUsers() {
-  const usersData = localStorage.getItem('users');
-  return usersData ? JSON.parse(usersData) : [];
-}
-
-function saveUsers(users) {
-  localStorage.setItem('users', JSON.stringify(users));
-}
-
-function createUser(name, email) {
-  const users = getUsers();
-  const existingUser = users.find(u => u.email === email);
-  
-  if (existingUser) {
-    return { error: 'Email already exists' };
-  }
-
-  const newUser = {
-    id: generateId(),
-    name,
-    email,
-  };
-
-  users.push(newUser);
-  saveUsers(users);
-  return { user: newUser };
-}
-
-function loginUser(email) {
-  const users = getUsers();
-  const user = users.find(u => u.email === email);
-  
-  if (!user) {
-    return { error: 'User not found' };
-  }
-
-  // Save session
-  localStorage.setItem('session', JSON.stringify({ user }));
-  return { user };
-}
+import { register, login, saveCurrentUser } from '../utils/api.js';
 
 function Landing({ onLogin }) {
   const [isCreating, setIsCreating] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    if (!email.trim()) {
-      setError('Email is required');
-      return;
-    }
-
-    if (isCreating) {
-      if (!name.trim()) {
-        setError('Name is required');
+    try {
+      if (!email.trim()) {
+        setError('Email is required');
+        setLoading(false);
         return;
       }
 
-      const result = createUser(name.trim(), email.trim());
-      if (result.error) {
-        setError(result.error);
-      } else {
-        onLogin(result.user);
+      if (!password.trim()) {
+        setError('Password is required');
+        setLoading(false);
+        return;
       }
-    } else {
-      const result = loginUser(email.trim());
-      if (result.error) {
-        setError(result.error);
+
+      if (isCreating) {
+        if (!name.trim()) {
+          setError('Name is required');
+          setLoading(false);
+          return;
+        }
+
+        if (password.length < 6) {
+          setError('Password must be at least 6 characters');
+          setLoading(false);
+          return;
+        }
+
+        const user = await register(name.trim(), email.trim(), password);
+        saveCurrentUser(user);
+        onLogin(user);
       } else {
-        onLogin(result.user);
+        const user = await login(email.trim(), password);
+        saveCurrentUser(user);
+        onLogin(user);
       }
+    } catch (err) {
+      setError(err.message || 'An error occurred');
+      setLoading(false);
     }
   };
 
@@ -87,7 +58,7 @@ function Landing({ onLogin }) {
     <div className="landing-container">
       <div className="landing-content">
         <h1>🍽️ Meal Prep Pantry</h1>
-        <p className="subtitle">Your local-first meal builder</p>
+        <p className="subtitle">Your cloud-enabled meal builder</p>
 
         <div className="auth-card">
           <h2>{isCreating ? 'Create Account' : 'Login'}</h2>
@@ -105,6 +76,7 @@ function Landing({ onLogin }) {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Your name"
                   autoFocus={isCreating}
+                  disabled={loading}
                 />
               </div>
             )}
@@ -118,11 +90,24 @@ function Landing({ onLogin }) {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
                 autoFocus={!isCreating}
+                disabled={loading}
               />
             </div>
 
-            <button type="submit" className="btn btn-primary">
-              {isCreating ? 'Create Account' : 'Login'}
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={isCreating ? 'Min. 6 characters' : 'Your password'}
+                disabled={loading}
+              />
+            </div>
+
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Please wait...' : (isCreating ? 'Create Account' : 'Login')}
             </button>
           </form>
 
@@ -137,6 +122,7 @@ function Landing({ onLogin }) {
                     setIsCreating(false);
                     setError('');
                     setName('');
+                    setPassword('');
                   }}
                 >
                   Login
@@ -151,6 +137,7 @@ function Landing({ onLogin }) {
                   onClick={() => {
                     setIsCreating(true);
                     setError('');
+                    setPassword('');
                   }}
                 >
                   Create one
@@ -161,7 +148,7 @@ function Landing({ onLogin }) {
 
           <div className="note">
             <small>
-              <strong>Note:</strong> This is a local-only app. Data is stored in your browser.
+              <strong>Note:</strong> Your data is securely stored in the cloud and synced across devices.
             </small>
           </div>
         </div>

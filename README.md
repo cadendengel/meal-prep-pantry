@@ -1,6 +1,6 @@
 # Meal Prep Pantry
 
-A local-first meal builder for tracking meals, ingredients, and macros with store product links.
+A cloud-based meal builder for tracking meals, ingredients, and macros with store product links. Your data is securely stored in MongoDB and synced across all your devices.
 
 ## Features
 
@@ -10,18 +10,25 @@ A local-first meal builder for tracking meals, ingredients, and macros with stor
 - 🏪 Support for HEB, Walmart, Sam's Club, and other stores
 - 🔗 Store product links (manual add-to-cart)
 - 📱 Responsive design
-- 💾 Local storage (all data stored in browser)
-- 🔐 Simple local authentication (testing only, no real passwords)
+- ☁️ **Cloud storage** - Access your data from anywhere
+- 🔐 **Secure authentication** - JWT-based with password hashing
+- 🌐 **Deployed on Vercel** - Fast, global CDN
 
 ## Tech Stack
 
+**Frontend:**
 - **Vite** - Build tool
 - **React 18** - UI framework
 - **React Router** - Navigation
 - **JavaScript** - No TypeScript
 - **CSS** - Plain CSS styling
-- **localStorage** - Data persistence
 - **Tesseract.js** - OCR for nutrition label scanning
+
+**Backend:**
+- **Vercel Serverless Functions** - API endpoints
+- **MongoDB Atlas** - Cloud database (free tier)
+- **JWT** - Authentication tokens
+- **bcryptjs** - Password hashing
 
 ## Getting Started
 
@@ -29,6 +36,7 @@ A local-first meal builder for tracking meals, ingredients, and macros with stor
 
 - Node.js (v16 or higher recommended)
 - npm or yarn
+- MongoDB Atlas account (free tier) - for deployment
 
 ### Installation
 
@@ -39,12 +47,24 @@ A local-first meal builder for tracking meals, ingredients, and macros with stor
 npm install
 ```
 
-### Running the App
+3. Set up environment variables:
+```bash
+# Copy the example file
+cp .env.example .env.local
+
+# Edit .env.local and add your values:
+# - MONGODB_URI: Your MongoDB Atlas connection string
+# - JWT_SECRET: A secure random string (32+ characters)
+```
+
+### Running the App Locally
 
 ```bash
 npm run dev
 ```
 This starts the React app on http://localhost:5173
+
+**Note:** For full functionality, you need MongoDB Atlas set up. See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed setup instructions.
 
 ### Building for Production
 
@@ -60,17 +80,30 @@ The built files will be in the `dist` folder.
 npm run preview
 ```
 
+## Deployment
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for complete deployment instructions to Vercel with MongoDB Atlas.
+
+**Quick Deploy:**
+1. Set up MongoDB Atlas (free tier)
+2. Install Vercel CLI: `npm install -g vercel`
+3. Deploy: `vercel`
+4. Add environment variables in Vercel dashboard
+5. Redeploy: `vercel --prod`
+
+**Cost: $0/month** (stays within free tiers)
+
 ## Usage
 
 ### Creating an Account
 
 1. On the landing page, click "Create one"
-2. Enter your name and email (no password required for v0)
+2. Enter your name, email, and password (minimum 6 characters)
 3. Click "Create Account"
 
 ### Login
 
-1. Enter your email on the landing page
+1. Enter your email and password on the landing page
 2. Click "Login"
 
 ### Creating a Meal
