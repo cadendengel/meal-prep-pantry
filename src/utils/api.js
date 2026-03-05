@@ -153,7 +153,8 @@ export async function getMeals() {
  * Get single meal by ID
  */
 export async function getMeal(id) {
-  const data = await apiRequest(`/meals/${id}`, {
+  const encodedId = encodeURIComponent(id);
+  const data = await apiRequest(`/meal?id=${encodedId}`, {
     method: 'GET',
   });
   
@@ -176,7 +177,8 @@ export async function createMeal(mealData) {
  * Update existing meal
  */
 export async function updateMeal(id, mealData) {
-  const data = await apiRequest(`/meals/${id}`, {
+  const encodedId = encodeURIComponent(id);
+  const data = await apiRequest(`/meal?id=${encodedId}`, {
     method: 'PUT',
     body: JSON.stringify(mealData),
   });
@@ -188,7 +190,8 @@ export async function updateMeal(id, mealData) {
  * Delete meal
  */
 export async function deleteMeal(id) {
-  const data = await apiRequest(`/meals/${id}`, {
+  const encodedId = encodeURIComponent(id);
+  const data = await apiRequest(`/meal?id=${encodedId}`, {
     method: 'DELETE',
   });
   
