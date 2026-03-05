@@ -47,17 +47,24 @@ async function apiRequest(endpoint, options = {}) {
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-  
-  // Handle non-JSON responses
-  const contentType = response.headers.get('content-type');
-  if (!contentType || !contentType.includes('application/json')) {
-    throw new Error('Server error: Invalid response format');
-  }
-
-  const data = await response.json();
+  const contentType = response.headers.get('content-type') || '';
+  const isJson = contentType.includes('application/json');
+  const data = isJson ? await response.json() : null;
 
   if (!response.ok) {
-    throw new Error(data.error || 'Request failed');
+    if (data?.error) {
+      throw new Error(data.error);
+    }
+
+    if (!isJson) {
+      throw new Error(`Request failed (${response.status})`);
+    }
+
+    throw new Error('Request failed');
+  }
+
+  if (!isJson) {
+    throw new Error('Server returned an unexpected response format');
   }
 
   return data;

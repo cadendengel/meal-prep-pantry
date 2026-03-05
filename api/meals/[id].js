@@ -13,25 +13,27 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Authenticate user
-  const userId = authenticateRequest(req);
-  if (!userId) {
-    return sendError(res, 401, 'Unauthorized');
-  }
-
-  // Get meal ID from query
-  const { id } = req.query;
-
-  if (!id || !ObjectId.isValid(id)) {
-    return sendError(res, 400, 'Invalid meal ID');
-  }
-
-  const meals = await getMealsCollection();
-
   try {
+    // Authenticate user
+    const userId = authenticateRequest(req);
+    if (!userId) {
+      return sendError(res, 401, 'Unauthorized');
+    }
+
+    // Normalize route param shape (can be string or string[] depending on runtime)
+    const rawId = req.query?.id;
+    const id = Array.isArray(rawId) ? rawId[0] : rawId;
+
+    if (!id || !ObjectId.isValid(id)) {
+      return sendError(res, 400, 'Invalid meal ID');
+    }
+
+    const mealObjectId = new ObjectId(id);
+    const meals = await getMealsCollection();
+
     if (req.method === 'GET') {
       // Get single meal
-      const meal = await meals.findOne({ _id: new ObjectId(id), userId });
+      const meal = await meals.findOne({ _id: mealObjectId, userId });
 
       if (!meal) {
         return sendError(res, 404, 'Meal not found');
@@ -73,7 +75,7 @@ export default async function handler(req, res) {
       }
 
       // Check if meal exists and belongs to user
-      const existingMeal = await meals.findOne({ _id: new ObjectId(id), userId });
+      const existingMeal = await meals.findOne({ _id: mealObjectId, userId });
       if (!existingMeal) {
         return sendError(res, 404, 'Meal not found');
       }
@@ -89,7 +91,7 @@ export default async function handler(req, res) {
       };
 
       await meals.updateOne(
-        { _id: new ObjectId(id), userId },
+        { _id: mealObjectId, userId },
         { $set: updatedMeal }
       );
 
@@ -105,7 +107,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'DELETE') {
       // Delete meal
-      const result = await meals.deleteOne({ _id: new ObjectId(id), userId });
+      const result = await meals.deleteOne({ _id: mealObjectId, userId });
 
       if (result.deletedCount === 0) {
         return sendError(res, 404, 'Meal not found');
