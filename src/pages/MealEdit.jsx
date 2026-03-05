@@ -1,29 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import MealForm from '../components/MealForm.jsx';
-
-// Helper functions - inline
-function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
-
-function getMeals() {
-  const mealsData = localStorage.getItem('meals');
-  return mealsData ? JSON.parse(mealsData) : [];
-}
-
-function saveMeal(meal) {
-  const allMeals = getMeals();
-  const existingIndex = allMeals.findIndex(m => m.id === meal.id);
-  
-  if (existingIndex >= 0) {
-    allMeals[existingIndex] = meal;
-  } else {
-    allMeals.push(meal);
-  }
-  
-  localStorage.setItem('meals', JSON.stringify(allMeals));
-}
+import { getMeal, createMeal, updateMeal } from '../utils/api.js';
 
 // Calculate meal serving size based on ingredients
 function calculateMealServingSize(ingredients, servingsPerMeal) {
@@ -68,44 +46,37 @@ function MealEdit({ user, onLogout }) {
   const isEditing = !!id;
 
   const [meal, setMeal] = useState({
-    id: generateId(),
-    userId: user.id,
     name: '',
     notes: '',
     servingSize: null,
     servingUnit: 'g',
     servingsPerMeal: null,
     ingredients: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
   });
 
   const [loading, setLoading] = useState(isEditing);
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (isEditing) {
-      const allMeals = getMeals();
-      const foundMeal = allMeals.find(m => m.id === id);
-      
-      if (!foundMeal) {
-        setError('Meal not found');
-        setLoading(false);
-        return;
-      }
+      loadMeal();
+    }
+  }, [id]);
 
-      if (foundMeal.userId !== user.id) {
-        setError('Access denied');
-        setLoading(false);
-        return;
-      }
-
+  const loadMeal = async () => {
+    try {
+      setLoading(true);
+      const foundMeal = await getMeal(id);
       setMeal(foundMeal);
+    } catch (err) {
+      setError(err.message || 'Meal not found');
+    } finally {
       setLoading(false);
     }
-  }, [id, isEditing, user.id]);
+  };
 
-  const handleSave = (updatedMeal) => {
+  const handleSave = async (updatedMeal) => {
     if (!updatedMeal.name.trim()) {
       alert('Meal name is required');
       return;
@@ -142,15 +113,24 @@ function MealEdit({ user, onLogout }) {
       }
     }
 
-    const mealToSave = {
+    const mealData = {
       ...updatedMeal,
       servingSize,
       servingUnit,
-      updatedAt: new Date().toISOString(),
     };
 
-    saveMeal(mealToSave);
-    navigate('/dashboard');
+    try {
+      setSaving(true);
+      if (isEditing) {
+        await updateMeal(id, mealData);
+      } else {
+        await createMeal(mealData);
+      }
+      navigate('/dashboard');
+    } catch (err) {
+      alert(err.message || 'Failed to save meal');
+      setSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -204,6 +184,7 @@ function MealEdit({ user, onLogout }) {
           meal={meal}
           onSave={handleSave}
           onCancel={handleCancel}
+          saving={saving}
         />
       </main>
     </div>

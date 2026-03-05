@@ -4,23 +4,18 @@ import Landing from './pages/Landing.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import MealEdit from './pages/MealEdit.jsx';
 import MealView from './pages/MealView.jsx';
-
-// Auth helpers - inline per requirements
-function getCurrentUser() {
-  const sessionData = localStorage.getItem('session');
-  if (!sessionData) return null;
-  const session = JSON.parse(sessionData);
-  return session.user || null;
-}
+import { getCurrentUser, logout, isAuthenticated } from './utils/api.js';
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in
-    const user = getCurrentUser();
-    setCurrentUser(user);
+    // Check if user is logged in (has valid token)
+    if (isAuthenticated()) {
+      const user = getCurrentUser();
+      setCurrentUser(user);
+    }
     setLoading(false);
   }, []);
 
@@ -29,7 +24,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('session');
+    logout();
     setCurrentUser(null);
   };
 

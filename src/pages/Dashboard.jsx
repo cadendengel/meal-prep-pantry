@@ -1,34 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-// Helper functions for meal management - inline
-function getMeals() {
-  const mealsData = localStorage.getItem('meals');
-  return mealsData ? JSON.parse(mealsData) : [];
-}
+import { getMeals, deleteMeal } from '../utils/api.js';
 
 function Dashboard({ user, onLogout }) {
   const navigate = useNavigate();
   const [meals, setMeals] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    // Load user's meals
-    const allMeals = getMeals();
-    const userMeals = allMeals.filter(m => m.userId === user.id);
-    setMeals(userMeals);
-  }, [user.id]);
+    // Load user's meals from API
+    loadMeals();
+  }, []);
 
-  const handleDelete = (mealId) => {
+  const loadMeals = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const userMeals = await getMeals();
+      setMeals(userMeals);
+    } catch (err) {
+      setError(err.message || 'Failed to load meals');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (mealId) => {
     if (!confirm('Are you sure you want to delete this meal?')) {
       return;
     }
 
-    const allMeals = getMeals();
-    const updatedMeals = allMeals.filter(m => m.id !== mealId);
-    localStorage.setItem('meals', JSON.stringify(updatedMeals));
-    
-    setMeals(meals.filter(m => m.id !== mealId));
+    try {
+      await deleteMeal(mealId);
+      setMeals(meals.filter(m => m.id !== mealId));
+    } catch (err) {
+      alert(err.message || 'Failed to delete meal');
+    }
   };
 
   const filteredMeals = meals.filter(meal =>
@@ -69,7 +78,11 @@ function Dashboard({ user, onLogout }) {
           />
         </div>
 
-        {filteredMeals.length === 0 ? (
+        {loading ? (
+          <div className="loading">Loading meals...</div>
+        ) : error ? (
+          <div className="error-message">{error}</div>
+        ) : filteredMeals.length === 0 ? (
           <div className="empty-state">
             <p>
               {searchTerm

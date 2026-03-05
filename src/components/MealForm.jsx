@@ -44,7 +44,7 @@ function calculateMealServingSize(ingredients, servingsPerMeal) {
   };
 }
 
-function MealForm({ meal, onSave, onCancel }) {
+function MealForm({ meal, onSave, onCancel, saving = false }) {
   const [formData, setFormData] = useState(meal);
 
   const handleFieldChange = (field, value) => {
@@ -214,10 +214,10 @@ function MealForm({ meal, onSave, onCancel }) {
       <MacroTotals meal={formData} />
 
       <div className="form-actions">
-        <button type="submit" className="btn btn-primary">
-          Save Meal
+        <button type="submit" className="btn btn-primary" disabled={saving}>
+          {saving ? 'Saving...' : 'Save Meal'}
         </button>
-        <button type="button" onClick={onCancel} className="btn btn-secondary">
+        <button type="button" onClick={onCancel} className="btn btn-secondary" disabled={saving}>
           Cancel
         </button>
       </div>
