@@ -2,43 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import MealForm from '../components/MealForm.jsx';
 import { getMeal, createMeal, updateMeal } from '../utils/api.js';
-
-// Calculate meal serving size based on ingredients
-function calculateMealServingSize(ingredients, servingsPerMeal) {
-  if (!servingsPerMeal || servingsPerMeal <= 0) return null;
-  
-  // Group ingredients by unit and sum total quantities used
-  const byUnit = {};
-  
-  for (const ingredient of ingredients) {
-    if (ingredient.servingSizeQuantity !== null && ingredient.servingSizeQuantity !== undefined) {
-      const unit = ingredient.servingSizeUnit || 'serving';
-      // Calculate total amount of this ingredient used in the meal
-      const servingsUsed = ingredient.servingsUsed || 0;
-      const totalQuantity = ingredient.servingSizeQuantity * servingsUsed;
-      
-      if (!byUnit[unit]) {
-        byUnit[unit] = 0;
-      }
-      byUnit[unit] += totalQuantity;
-    }
-  }
-  
-  // If no ingredients with quantities, return null
-  if (Object.keys(byUnit).length === 0) return null;
-  
-  // Divide by servings per meal for per-serving amount
-  const perServing = {};
-  for (const unit in byUnit) {
-    perServing[unit] = byUnit[unit] / servingsPerMeal;
-  }
-  
-  return {
-    totals: byUnit,
-    perServing: perServing,
-    hasMultipleUnits: Object.keys(byUnit).length > 1,
-  };
-}
+import { calculateMealServingSize, isSafeHttpUrl } from '../utils/mealCalc.js';
 
 function MealEdit({ user, onLogout }) {
   const navigate = useNavigate();
@@ -87,13 +51,12 @@ function MealEdit({ user, onLogout }) {
       return;
     }
 
-    // Validate ingredient URLs
+    // Validate ingredient URLs. The API repeats this check, because a
+    // client-side check alone does not protect the stored data.
     for (const ingredient of updatedMeal.ingredients) {
       if (ingredient.productUrl && ingredient.productUrl.trim()) {
-        try {
-          new URL(ingredient.productUrl);
-        } catch {
-          alert(`Invalid URL for ingredient: ${ingredient.name}`);
+        if (!isSafeHttpUrl(ingredient.productUrl.trim())) {
+          alert(`Invalid URL for ingredient: ${ingredient.name || 'unnamed'}\n\nUse a full http:// or https:// address.`);
           return;
         }
       }
@@ -181,6 +144,7 @@ function MealEdit({ user, onLogout }) {
       <main className="main-content">
         <h2>{isEditing ? 'Edit Meal' : 'New Meal'}</h2>
         <MealForm
+          key={id || 'new'}
           meal={meal}
           onSave={handleSave}
           onCancel={handleCancel}

@@ -935,3 +935,8 @@ body {
     width: 100%;
   }
 }
+
+.field-hint-error {
+  color: #c0392b;
+  font-weight: 600;
+}

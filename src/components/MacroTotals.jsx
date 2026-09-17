@@ -1,15 +1,13 @@
 import React from 'react';
+import { calculateIngredientTotals } from '../utils/mealCalc.js';
 
 function MacroTotals({ meal }) {
+  const ingredients = Array.isArray(meal?.ingredients) ? meal.ingredients : [];
+
   // Calculate meal totals
-  const mealTotals = meal.ingredients.reduce(
+  const mealTotals = ingredients.reduce(
     (totals, ingredient) => {
-      const ingredientTotals = {
-        calories: (ingredient.caloriesPerServing || 0) * (ingredient.servingsUsed || 0),
-        protein: (ingredient.proteinPerServing || 0) * (ingredient.servingsUsed || 0),
-        carbs: (ingredient.carbsPerServing || 0) * (ingredient.servingsUsed || 0),
-        fat: (ingredient.fatPerServing || 0) * (ingredient.servingsUsed || 0),
-      };
+      const ingredientTotals = calculateIngredientTotals(ingredient);
 
       return {
         calories: totals.calories + ingredientTotals.calories,
@@ -22,7 +20,7 @@ function MacroTotals({ meal }) {
   );
 
   // Calculate per-serving macros
-  const servingsPerMeal = meal.servingsPerMeal || 1;
+  const servingsPerMeal = Number(meal?.servingsPerMeal) || 1;
   const perServingMacros = {
     calories: mealTotals.calories / servingsPerMeal,
     protein: mealTotals.protein / servingsPerMeal,
@@ -31,23 +29,27 @@ function MacroTotals({ meal }) {
   };
 
   // Calculate prices
-  const storeCost = meal.ingredients.reduce(
-    (sum, ingredient) => sum + (ingredient.price || 0),
+  const storeCost = ingredients.reduce(
+    (sum, ingredient) => sum + (Number(ingredient.price) || 0),
     0
   );
 
   // Calculate meal cost (accounting for how much of each ingredient is actually used)
-  const mealCost = meal.ingredients.reduce((sum, ingredient) => {
-    if (!ingredient.price) return sum;
-    
+  const mealCost = ingredients.reduce((sum, ingredient) => {
+    const price = Number(ingredient.price) || 0;
+    if (!price) return sum;
+
+    const perContainer = Number(ingredient.servingsPerContainer) || 0;
+    const used = Number(ingredient.servingsUsed) || 0;
+
     // If servingsPerContainer exists, calculate percentage used
-    if (ingredient.servingsPerContainer && ingredient.servingsPerContainer > 0 && ingredient.servingsUsed) {
-      const percentUsed = ingredient.servingsUsed / ingredient.servingsPerContainer;
-      return sum + (ingredient.price * percentUsed);
+    if (perContainer > 0 && used) {
+      const percentUsed = used / perContainer;
+      return sum + (price * percentUsed);
     }
-    
+
     // If no servingsPerContainer, include full price (ingredient is consumed entirely)
-    return sum + ingredient.price;
+    return sum + price;
   }, 0);
 
   const storeCostPerServing = servingsPerMeal > 0 ? storeCost / servingsPerMeal : 0;
