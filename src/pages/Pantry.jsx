@@ -173,7 +173,7 @@ function Pantry({ user, onLogout }) {
             <div className="form-row form-row-3">
               <div className="form-group">
                 <label htmlFor="pantry-servingSizeQuantity">Serving size</label>
-                <input id="pantry-servingSizeQuantity" type="number" min="0" step="0.1"
+                <input id="pantry-servingSizeQuantity" type="number" min="0" step="any"
                   value={form.servingSizeQuantity}
                   onChange={(e) => setField('servingSizeQuantity', e.target.value)}
                   onWheel={(e) => e.currentTarget.blur()} />
@@ -187,7 +187,7 @@ function Pantry({ user, onLogout }) {
               </div>
               <div className="form-group">
                 <label htmlFor="pantry-servingsPerContainer">Servings per container</label>
-                <input id="pantry-servingsPerContainer" type="number" min="0" step="0.1"
+                <input id="pantry-servingsPerContainer" type="number" min="0" step="any"
                   value={form.servingsPerContainer}
                   onChange={(e) => setField('servingsPerContainer', e.target.value)}
                   onWheel={(e) => e.currentTarget.blur()} />
@@ -198,7 +198,7 @@ function Pantry({ user, onLogout }) {
               {NUMERIC_FIELDS.slice(2, 6).map(([field, label, step]) => (
                 <div className="form-group" key={field}>
                   <label htmlFor={`pantry-${field}`}>{label}</label>
-                  <input id={`pantry-${field}`} type="number" min="0" step={step}
+                  <input id={`pantry-${field}`} type="number" min="0" step="any"
                     value={form[field]}
                     onChange={(e) => setField(field, e.target.value)}
                     onWheel={(e) => e.currentTarget.blur()} />

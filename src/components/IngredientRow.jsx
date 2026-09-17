@@ -306,7 +306,7 @@ function IngredientRow({ ingredient, index, onUpdate, onDelete, defaultExpanded 
               <label htmlFor={fieldId('sizeQty')}>Serving size</label>
               <input
                 id={fieldId('sizeQty')}
-                type="number" min="0" step="0.1"
+                type="number" min="0" step="any"
                 value={ingredient.servingSizeQuantity ?? ''}
                 onChange={(e) => handleFieldChange('servingSizeQuantity', e.target.value ? parseFloat(e.target.value) : null)}
                 onWheel={(e) => e.currentTarget.blur()}
@@ -329,7 +329,7 @@ function IngredientRow({ ingredient, index, onUpdate, onDelete, defaultExpanded 
               <label htmlFor={fieldId('perContainer')}>Servings per container</label>
               <input
                 id={fieldId('perContainer')}
-                type="number" min="0" step="0.1"
+                type="number" min="0" step="any"
                 value={ingredient.servingsPerContainer ?? ''}
                 onChange={(e) => handleFieldChange('servingsPerContainer', e.target.value ? parseFloat(e.target.value) : null)}
                 onWheel={(e) => e.currentTarget.blur()}
@@ -344,7 +344,7 @@ function IngredientRow({ ingredient, index, onUpdate, onDelete, defaultExpanded 
                 <label htmlFor={fieldId(field)}>{label}</label>
                 <input
                   id={fieldId(field)}
-                  type="number" min="0" step={step}
+                  type="number" min="0" step="any"
                   value={ingredient[field] ?? ''}
                   onChange={(e) => handleFieldChange(field, e.target.value ? parseFloat(e.target.value) : null)}
                   onWheel={(e) => e.currentTarget.blur()}
@@ -377,7 +377,7 @@ function IngredientRow({ ingredient, index, onUpdate, onDelete, defaultExpanded 
               <label htmlFor={fieldId('servingsUsed')}>Servings used</label>
               <input
                 id={fieldId('servingsUsed')}
-                type="number" min="0" step="0.1"
+                type="number" min="0" step="any"
                 value={ingredient.servingsUsed ?? ''}
                 onChange={(e) => handleFieldChange('servingsUsed', e.target.value ? parseFloat(e.target.value) : null)}
                 onWheel={(e) => e.currentTarget.blur()}
