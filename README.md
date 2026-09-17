@@ -1,250 +1,234 @@
 # Meal Prep Pantry
 
-A cloud-based meal builder for tracking meals, ingredients, and macros with store product links. Your data is securely stored in MongoDB and synced across all your devices.
+A cloud-based meal builder. It tracks meals, ingredients and macros, with links to store product pages. Data lives in MongoDB Atlas and syncs across your devices.
 
 ## Features
 
-- 🍽️ Create and manage meals with detailed ingredient tracking
-- 📊 Automatic macro calculations (calories, protein, carbs, fat)
-- 📸 **OCR Nutrition Label Scanning** - Auto-fill macros from photos
-- 🏪 Support for HEB, Walmart, Sam's Club, and other stores
-- 🔗 Store product links (manual add-to-cart)
-- 📱 Responsive design
-- ☁️ **Cloud storage** - Access your data from anywhere
-- 🔐 **Secure authentication** - JWT-based with password hashing
-- 🌐 **Deployed on Vercel** - Fast, global CDN
+- Create and manage meals with per-ingredient tracking
+- Automatic macro totals (calories, protein, carbs, fat), per meal and per serving
+- OCR nutrition label scanning, or paste the label text
+- Store detection from a product URL (HEB, Walmart, Sam's Club and others)
+- Cost tracking, both store cost and the portion actually used
+- Sortable ingredient table
+- Responsive layout
+- JWT authentication with bcrypt password hashing
 
-## Tech Stack
+## Tech stack
 
-**Frontend:**
-- **Vite** - Build tool
-- **React 18** - UI framework
-- **React Router** - Navigation
-- **JavaScript** - No TypeScript
-- **CSS** - Plain CSS styling
-- **Tesseract.js** - OCR for nutrition label scanning
+**Frontend**
+- Vite 5 (build tool)
+- React 18
+- React Router 6
+- Plain JavaScript and plain CSS
+- Tesseract.js (OCR)
 
-**Backend:**
-- **Vercel Serverless Functions** - API endpoints
-- **MongoDB Atlas** - Cloud database (free tier)
-- **JWT** - Authentication tokens
-- **bcryptjs** - Password hashing
+**Backend**
+- Vercel serverless functions (`api/`)
+- MongoDB Atlas
+- `jsonwebtoken` for tokens, `bcryptjs` for password hashing
 
-## Getting Started
+**Tests**
+- Vitest
+
+## Getting started
 
 ### Prerequisites
 
-- Node.js (v16 or higher recommended)
-- npm or yarn
-- MongoDB Atlas account (free tier) - for deployment
+- Node.js 18 or later
+- npm
+- A MongoDB Atlas cluster (the free tier is enough)
 
-### Installation
+### Install
 
-1. Clone or download this repository
+1. Clone the repository.
 
-2. Install dependencies:
+2. Install the dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Create your environment file:
+   ```bash
+   cp .env.example .env.local
+   ```
+
+4. Edit `.env.local` and set both values:
+   - `MONGODB_URI` — your Atlas connection string
+   - `JWT_SECRET` — 32 or more random characters
+
+   Generate a secret with:
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+   ```
+
+Both variables are required. The API throws at startup when either is missing.
+
+### Run locally
+
+`npm run dev` starts Vite on http://localhost:3000. Vite serves the front end only. It does not run the functions in `api/`, so login and meal storage return 404.
+
+To run the front end and the API together, use the Vercel CLI:
+
 ```bash
-npm install
+npm install -g vercel
+vercel dev
 ```
 
-3. Set up environment variables:
-```bash
-# Copy the example file
-cp .env.example .env.local
+`vercel dev` reads `.env.local` and serves both parts on one origin.
 
-# Edit .env.local and add your values:
-# - MONGODB_URI: Your MongoDB Atlas connection string
-# - JWT_SECRET: A secure random string (32+ characters)
+### Test
+
+```bash
+npm test        # single run
+npm run test:watch
 ```
 
-### Running the App Locally
+The suite covers the nutrition parser, the meal calculations and the API payload validation. It needs no database.
+
+### Build
 
 ```bash
-npm run dev
-```
-This starts the React app on http://localhost:5173
-
-**Note:** For full functionality, you need MongoDB Atlas set up. See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed setup instructions.
-
-### Building for Production
-
-```bash
-npm run build
-```
-
-The built files will be in the `dist` folder.
-
-### Preview Production Build
-
-```bash
+npm run build   # output goes to dist/
 npm run preview
 ```
 
 ## Deployment
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for complete deployment instructions to Vercel with MongoDB Atlas.
+1. Create a MongoDB Atlas cluster and a database user.
+2. Allow network access from Vercel. Atlas has no fixed egress range for Vercel, so use `0.0.0.0/0` and rely on the database user credentials, or use an Atlas private endpoint.
+3. Install the CLI and deploy:
+   ```bash
+   npm install -g vercel
+   vercel
+   ```
+4. Add `MONGODB_URI` and `JWT_SECRET` in the Vercel dashboard, under Settings then Environment Variables.
+5. Deploy to production:
+   ```bash
+   vercel --prod
+   ```
 
-**Quick Deploy:**
-1. Set up MongoDB Atlas (free tier)
-2. Install Vercel CLI: `npm install -g vercel`
-3. Deploy: `vercel`
-4. Add environment variables in Vercel dashboard
-5. Redeploy: `vercel --prod`
-
-**Cost: $0/month** (stays within free tiers)
+The app creates its own indexes on first request: a unique index on `users.email`, and a compound index on `meals.userId` and `meals.updatedAt`.
 
 ## Usage
 
-### Creating an Account
+### Create an account
 
-1. On the landing page, click "Create one"
-2. Enter your name, email, and password (minimum 6 characters)
-3. Click "Create Account"
+On the landing page, choose "Create one", then enter a name, an email address and a password of at least 6 characters.
 
-### Login
+### Create a meal
 
-1. Enter your email and password on the landing page
-2. Click "Login"
+1. Choose "New Meal" on the dashboard.
+2. Enter the meal name and the servings per meal. Both are required.
+3. Choose "Add Ingredient", then expand the row.
+4. Fill in the ingredient fields, or scan the label (see below).
+5. Enter how many servings of that ingredient the recipe uses.
+6. Choose "Save Meal".
 
-### Creating a Meal
+Macro totals update as you type.
 
-1. Click "New Meal" from the dashboard
-2. Fill in meal details:
-   - Name (required)
-   - Notes (optional)
-   - Serving size and unit
-   - Servings per meal (required, must be > 0)
-3. Add ingredients:
-   - Click "Add Ingredient"
-   - Expand ingredient row with the arrow button
-   - Fill in ingredient details:
-     - **Name**
-     - **Store** (HEB, Walmart, Sam's Club, Other)
-     - **Product URL** (optional)
-     - **📸 Scan Nutrition Label** - Upload or drag photo to auto-fill
-     - **Nutrition Facts (Per Serving):**
-       - Serving size (e.g., "1 cup (240g)")
-       - Servings per container (optional)
-       - Calories per serving
-       - Protein, carbs, fat per serving
-     - **Recipe Usage:**
-       - Number of servings used in this recipe
-     - **Price** (optional)
-     - **Notes** (optional)
-4. View live-updating macro totals (meal totals and per-serving)
-5. Click "Save Meal"
+### Scan a nutrition label
 
-### Using OCR to Scan Nutrition Labels
+1. Expand the ingredient row.
+2. Either choose "Upload Photo", or drag an image onto the upload area.
+3. Wait for OCR. The progress percentage appears during processing.
+4. Review the extracted values and correct any that are wrong.
 
-The app now follows standard nutrition label format for accurate macro tracking:
+You can also paste the label text into the "Or paste nutrition text" box and choose "Parse Text". This is faster and more accurate than OCR when you can copy the text.
 
-1. When adding or editing an ingredient, expand the ingredient row
-2. In the "Scan Nutrition Label" section, either:
-   - **Click "📷 Upload Photo"** and choose a photo from your device, OR
-   - **Drag and drop** a nutrition label image directly onto the upload area
-3. Wait for OCR processing (shows progress percentage with a spinner)
-4. The app will automatically extract and fill:
-   - **Serving Size** (e.g., "1 cup (240g)")
-   - **Servings Per Container** (if shown)
-   - **Per Serving Macros:**
-     - Calories
-     - Protein
-     - Carbohydrates
-     - Fat
-5. Then specify **how many servings you're using** in "Recipe Usage"
-6. The app automatically calculates ingredient totals: servings used × macros per serving
+The parser reads the serving size, the servings per container, the calories, the protein, the total carbohydrate and the total fat.
 
-**Example:**
-- Nutrition label shows: "1 serving (240g) = 110 cal, 3g protein"
-- You're using 2.5 servings in your recipe
-- Ingredient total: 2.5 × 110 = 275 calories
+**Example**
 
-**Tips for best results:**
-- Use clear, well-lit photos
-- Ensure the entire nutrition label is visible
-- Keep text readable and in focus
-- Try to avoid glare or shadows
-- Use common image formats (JPG, PNG, etc.)
+- The label reads "1 serving (240g) = 110 cal, 3g protein".
+- The recipe uses 2.5 servings.
+- The ingredient total is 2.5 × 110 = 275 calories.
 
-### Viewing a Meal
+**For the best OCR results**
+- Use a clear, well-lit photo.
+- Keep the whole label in frame and in focus.
+- Avoid glare and shadows.
 
-1. From the dashboard, click "View" on any meal
-2. See meal details, all ingredients, and nutrition summary
-3. Click product links to open store pages in new tab
-4. Manually add items to cart on the store website
+OCR misreads are common. Always check the values it fills in.
 
-### Editing a Meal
+### Product links
 
-1. From the dashboard or meal view, click "Edit"
-2. Modify any meal or ingredient details
-3. Click "Save Meal"
+Enter a full `http://` or `https://` product URL. The app derives the store name from the host and shows an "Open" link on the meal view. Other URL schemes are rejected. Adding items to a cart is manual.
 
-### Deleting a Meal
+## Data storage
 
-1. From the dashboard, click "Delete" on any meal
-2. Confirm deletion
+All data lives in MongoDB Atlas, in the `mealprep` database.
 
-## Data Storage
+- `users` — one document per account: `name`, `email`, a bcrypt `password` hash, `createdAt`
+- `meals` — one document per meal, owned through a `userId` field
 
-All data is stored in browser localStorage:
+The browser stores only the JWT and a cached copy of your name and email, both in `localStorage`. Clearing browser data logs you out. It does not delete your meals.
 
-- **users**: Array of user objects (id, name, email)
-- **session**: Current logged-in user
-- **meals**: Array of meal objects (filtered by userId)
-
-**Important:** Clearing browser data will delete all stored information.
-
-## Project Structure
+## Project structure
 
 ```
-MealPrepPantry/
+meal-prep-pantry/
+├── api/                      # Vercel serverless functions
+│   ├── auth/
+│   │   ├── login.js
+│   │   └── register.js
+│   ├── meals/
+│   │   └── index.js          # GET list, POST create
+│   └── meal.js               # GET, PUT, DELETE one meal by ?id=
+├── lib/                      # Server-side shared code
+│   ├── auth.js               # JWT sign, verify, response helpers
+│   ├── mongodb.js            # Connection and index creation
+│   ├── rateLimit.js          # Best-effort login throttling
+│   ├── validation.js         # Payload and URL validation
+│   └── __tests__/
 ├── src/
-│   ├── main.jsx              # App entry point
-│   ├── App.jsx               # Main app with routing
-│   ├── styles.css            # All styles
+│   ├── main.jsx
+│   ├── App.jsx               # Routing and session state
+│   ├── styles.css
 │   ├── pages/
-│   │   ├── Landing.jsx       # Login/create account
-│   │   ├── Dashboard.jsx     # Meal list
-│   │   ├── MealEdit.jsx      # Create/edit meal
-│   │   └── MealView.jsx      # View meal details
-│   └── components/
-│       ├── MealForm.jsx      # Meal form with ingredients
-│       ├── IngredientRow.jsx # Single ingredient editor
-│       └── MacroTotals.jsx   # Nutrition summary
+│   │   ├── Landing.jsx
+│   │   ├── Dashboard.jsx
+│   │   ├── MealEdit.jsx
+│   │   └── MealView.jsx
+│   ├── components/
+│   │   ├── MealForm.jsx
+│   │   ├── IngredientRow.jsx
+│   │   ├── MacroTotals.jsx
+│   │   └── ErrorBoundary.jsx
+│   └── utils/
+│       ├── api.js            # Fetch client, token handling
+│       ├── mealCalc.js       # Shared macro and serving math
+│       ├── nutritionParser.js
+│       └── __tests__/
 ├── index.html
+├── vercel.json
 ├── vite.config.js
-├── package.json
-└── README.md
+└── package.json
 ```
 
-## Notes
+## Security notes
 
-- This is a **local-first app** for personal use
-- No backend or database required
-- No real authentication (v0 testing only)
-- Data persists only in your browser
-- No cloud sync or multi-device support (yet)
-- Product links open store pages - users manually add to cart
+- Passwords are hashed with bcrypt at 10 rounds. bcrypt ignores bytes past 72, so the API rejects longer passwords rather than storing a truncated one.
+- Tokens are JWTs with a 30-day expiry, held in `localStorage`. There is no revocation list. Changing `JWT_SECRET` invalidates every existing token.
+- Every meal query filters on the authenticated `userId`, so one account cannot read or change another account's meals.
+- Product URLs are restricted to `http:` and `https:` on both the client and the server, so a `javascript:` URL cannot reach an anchor `href`.
+- Login throttling is per serverless instance and is best-effort only. See the comment at the top of `lib/rateLimit.js`. Move the counters to a shared store if you need a hard limit.
+- The front end and the API share one origin, so the API sets no CORS headers. Setting `VITE_API_URL` to a different origin will fail CORS until you add the headers back deliberately.
 
-## Future Enhancements
+## Known limitations
 
-Potential features for future versions:
-- Real authentication with passwords
-- Backend API for cloud storage
-- Multi-device sync
+- Ingredient prices are stored as floating-point numbers. Cost totals can drift by a fraction of a cent.
+- `calculateMealServingSize` sums quantities by unit without converting between units. A meal mixing grams and cups reports each unit separately, and the saved `servingSize` uses whichever unit comes first.
+- There is no password reset flow.
+- There is no pagination on the dashboard.
+
+## Possible future work
+
 - Meal planning calendar
 - Shopping list generation
-- Recipe sharing
-- Nutritional goals tracking
+- Unit conversion in the serving size calculation
+- Nutrition goal tracking
+- Password reset by email
 
 ## License
 
-This project is for personal use. Feel free to modify and adapt as needed.
-
-## Support
-
-For questions or issues, please refer to the code comments or create an issue in the repository.
-
----
-
-Built with ❤️ using Vite + React
+For personal use. Modify and adapt as you need.
