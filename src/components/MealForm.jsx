@@ -5,6 +5,7 @@ import IngredientPicker from './IngredientPicker.jsx';
 import { useToast } from './Toast.jsx';
 import { generateId, calculateMealServingSize } from '../utils/mealCalc.js';
 import { formatQuantity } from '../utils/units.js';
+import { reportInvalidField } from '../utils/formValidation.js';
 
 function blankIngredient() {
   return {
@@ -138,26 +139,13 @@ function MealForm({ meal, onSave, onCancel, saving = false, onDirtyChange, targe
     onSave(formData);
   };
 
-  /**
-   * Report a browser validation failure.
-   *
-   * Native validation blocks submit before onSubmit runs, and the bubble it
-   * shows is easy to miss on a long form. Without this, a rejected field
-   * looks like a Save button that does nothing.
-   */
-  const handleInvalid = (event) => {
-    const field = event.target;
-    const label = field.labels?.[0]?.textContent?.replace('*', '').trim() || field.name || 'A field';
-    toast.error(`${label}: ${field.validationMessage}`);
-  };
-
   const servingSizeCalc = useMemo(
     () => calculateMealServingSize(formData.ingredients, formData.servingsPerMeal),
     [formData.ingredients, formData.servingsPerMeal]
   );
 
   return (
-    <form onSubmit={handleSubmit} onInvalidCapture={handleInvalid} className="meal-form">
+    <form onSubmit={handleSubmit} onInvalidCapture={reportInvalidField(toast)} className="meal-form">
       <div className="form-section">
         <h3>Meal Details</h3>
 

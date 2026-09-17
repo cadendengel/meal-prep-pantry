@@ -7,6 +7,7 @@ import { useToast } from '../components/Toast.jsx';
 import { getPantry, createPantryIngredient, updatePantryIngredient, deletePantryIngredient } from '../utils/api.js';
 import { listUnits } from '../utils/units.js';
 import { isSafeHttpUrl } from '../utils/mealCalc.js';
+import { reportInvalidField } from '../utils/formValidation.js';
 
 const EMPTY = {
   name: '', brand: '', barcode: '',
@@ -146,7 +147,7 @@ function Pantry({ user, onLogout }) {
           when you add it, so editing a pantry item never changes a meal you already saved.
         </p>
 
-        <form onSubmit={handleSubmit} className="meal-form">
+        <form onSubmit={handleSubmit} onInvalidCapture={reportInvalidField(toast)} className="meal-form">
           <div className="form-section">
             <h3>{editingId ? 'Edit ingredient' : 'Add an ingredient'}</h3>
 

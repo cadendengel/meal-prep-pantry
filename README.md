@@ -35,7 +35,8 @@ A cloud-based meal builder. It tracks meals, ingredients and macros, with links 
 - `jsonwebtoken` for tokens, `bcryptjs` for password hashing
 
 **Tests**
-- Vitest
+- Vitest for unit tests
+- Playwright for browser tests, with an in-memory MongoDB
 
 ## Getting started
 
@@ -97,11 +98,25 @@ vercel dev
 ### Test
 
 ```bash
-npm test        # single run
+npm test          # unit tests
 npm run test:watch
+npm run test:e2e  # browser tests
+npm run test:all  # both
 ```
 
-The suite covers the nutrition parser, the meal calculations and the API payload validation. It needs no database.
+**Unit tests** cover the nutrition parser, the meal calculations, the API
+payload validation, the API client and the mailer. They need no database.
+
+**End-to-end tests** drive a real browser against the real API handlers and
+an in-memory MongoDB that starts and stops with the run. They exist because
+a form-submission bug once made saving a meal impossible while every unit
+test still passed. See [e2e/README.md](e2e/README.md).
+
+First run only:
+
+```bash
+npx playwright install chromium
+```
 
 ### Build
 
@@ -222,6 +237,11 @@ meal-prep-pantry/
 │       ├── mealCalc.js       # Shared macro and serving math
 │       ├── nutritionParser.js
 │       └── __tests__/
+├── e2e/                      # Browser tests
+│   ├── run.js                # Starts the database, the server, then Playwright
+│   ├── vercel-api-plugin.js  # Serves api/ the way Vercel functions do
+│   ├── fixtures.js           # Per-test accounts and seeding helpers
+│   └── specs/
 ├── index.html
 ├── vercel.json
 ├── vite.config.js
