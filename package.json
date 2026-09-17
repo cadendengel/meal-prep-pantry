@@ -8,7 +8,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "node e2e/run.js",
+    "test:e2e:ui": "node e2e/run.js --ui",
+    "test:all": "vitest run && node e2e/run.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -21,7 +24,9 @@
     "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@vitejs/plugin-react": "^4.2.0",
+    "mongodb-memory-server": "^11.2.0",
     "vite": "^5.0.0",
     "vitest": "^2.1.9"
   }
