@@ -1,103 +1,114 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import MealForm from '../components/MealForm.jsx';
+import AppNav from '../components/AppNav.jsx';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
+import { useToast } from '../components/Toast.jsx';
+import useUnsavedChanges from '../hooks/useUnsavedChanges.js';
 import { getMeal, createMeal, updateMeal } from '../utils/api.js';
 import { calculateMealServingSize, isSafeHttpUrl } from '../utils/mealCalc.js';
 
-function MealEdit({ user, onLogout }) {
+const EMPTY_MEAL = {
+  name: '',
+  notes: '',
+  servingSize: null,
+  servingUnit: 'g',
+  servingsPerMeal: null,
+  ingredients: [],
+};
+
+function MealEdit({ user, onLogout, targets }) {
   const navigate = useNavigate();
   const { id } = useParams();
+  const toast = useToast();
   const isEditing = !!id;
 
-  const [meal, setMeal] = useState({
-    name: '',
-    notes: '',
-    servingSize: null,
-    servingUnit: 'g',
-    servingsPerMeal: null,
-    ingredients: [],
-  });
-
+  const [meal, setMeal] = useState(EMPTY_MEAL);
   const [loading, setLoading] = useState(isEditing);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [leaveTo, setLeaveTo] = useState(null);
+
+  useUnsavedChanges(dirty && !saving);
 
   useEffect(() => {
-    if (isEditing) {
-      loadMeal();
-    }
-  }, [id]);
+    if (!isEditing) return;
 
-  const loadMeal = async () => {
-    try {
-      setLoading(true);
-      const foundMeal = await getMeal(id);
-      setMeal(foundMeal);
-    } catch (err) {
-      setError(err.message || 'Meal not found');
-    } finally {
-      setLoading(false);
-    }
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        const found = await getMeal(id);
+        if (!cancelled) setMeal(found);
+      } catch (err) {
+        if (!cancelled) setError(err.message || 'Meal not found');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [id, isEditing]);
+
+  const handleDirtyChange = useCallback(() => setDirty(true), []);
+
+  const leave = (path) => {
+    if (dirty) setLeaveTo(path);
+    else navigate(path);
   };
 
   const handleSave = async (updatedMeal) => {
     if (!updatedMeal.name.trim()) {
-      alert('Meal name is required');
+      toast.error('Meal name is required.');
       return;
     }
 
-    if (updatedMeal.servingsPerMeal <= 0) {
-      alert('Servings per meal must be greater than 0');
+    if (!updatedMeal.servingsPerMeal || updatedMeal.servingsPerMeal <= 0) {
+      toast.error('Servings per meal must be greater than 0.');
       return;
     }
 
-    // Validate ingredient URLs. The API repeats this check, because a
-    // client-side check alone does not protect the stored data.
     for (const ingredient of updatedMeal.ingredients) {
       if (ingredient.productUrl && ingredient.productUrl.trim()) {
         if (!isSafeHttpUrl(ingredient.productUrl.trim())) {
-          alert(`Invalid URL for ingredient: ${ingredient.name || 'unnamed'}\n\nUse a full http:// or https:// address.`);
+          toast.error(`${ingredient.name || 'An ingredient'} has an invalid product URL. Use a full http:// or https:// address.`);
           return;
         }
       }
     }
 
-    // Calculate and store the serving size
-    const servingSizeCalc = calculateMealServingSize(updatedMeal.ingredients, updatedMeal.servingsPerMeal);
+    // Store one representative serving size, taken from the first unit
+    // present. Meals that mix units show each separately in the form.
+    const calc = calculateMealServingSize(updatedMeal.ingredients, updatedMeal.servingsPerMeal);
     let servingSize = null;
     let servingUnit = updatedMeal.servingUnit || 'g';
 
-    if (servingSizeCalc) {
-      // Get the first (or primary) unit and its per-serving amount
-      const units = Object.keys(servingSizeCalc.perServing);
+    if (calc) {
+      const units = Object.keys(calc.perServing);
       if (units.length > 0) {
         servingUnit = units[0];
-        servingSize = parseFloat(servingSizeCalc.perServing[servingUnit].toFixed(2));
+        servingSize = parseFloat(calc.perServing[servingUnit].toFixed(2));
       }
     }
-
-    const mealData = {
-      ...updatedMeal,
-      servingSize,
-      servingUnit,
-    };
 
     try {
       setSaving(true);
+      setDirty(false);
+      const payload = { ...updatedMeal, servingSize, servingUnit };
       if (isEditing) {
-        await updateMeal(id, mealData);
+        await updateMeal(id, payload);
+        toast.success(`Saved ${payload.name}.`);
       } else {
-        await createMeal(mealData);
+        await createMeal(payload);
+        toast.success(`Created ${payload.name}.`);
       }
       navigate('/dashboard');
     } catch (err) {
-      alert(err.message || 'Failed to save meal');
+      setDirty(true);
+      toast.error(err.message || 'Failed to save meal.');
       setSaving(false);
     }
-  };
-
-  const handleCancel = () => {
-    navigate('/dashboard');
   };
 
   if (loading) {
@@ -107,16 +118,7 @@ function MealEdit({ user, onLogout }) {
   if (error) {
     return (
       <div className="page-container">
-        <nav className="navbar">
-          <div className="nav-content">
-            <h1>🍽️ Meal Prep Pantry</h1>
-            <div className="nav-actions">
-              <button onClick={onLogout} className="btn btn-secondary">
-                Logout
-              </button>
-            </div>
-          </div>
-        </nav>
+        <AppNav user={user} onLogout={onLogout} />
         <main className="main-content">
           <div className="error-message">{error}</div>
           <button onClick={() => navigate('/dashboard')} className="btn btn-primary">
@@ -129,17 +131,7 @@ function MealEdit({ user, onLogout }) {
 
   return (
     <div className="page-container">
-      <nav className="navbar">
-        <div className="nav-content">
-          <h1>🍽️ Meal Prep Pantry</h1>
-          <div className="nav-actions">
-            <span className="user-name">{user.name}</span>
-            <button onClick={onLogout} className="btn btn-secondary">
-              Logout
-            </button>
-          </div>
-        </div>
-      </nav>
+      <AppNav user={user} onLogout={onLogout} />
 
       <main className="main-content">
         <h2>{isEditing ? 'Edit Meal' : 'New Meal'}</h2>
@@ -147,10 +139,22 @@ function MealEdit({ user, onLogout }) {
           key={id || 'new'}
           meal={meal}
           onSave={handleSave}
-          onCancel={handleCancel}
+          onCancel={() => leave('/dashboard')}
+          onDirtyChange={handleDirtyChange}
           saving={saving}
+          targets={targets}
         />
       </main>
+
+      <ConfirmDialog
+        open={leaveTo !== null}
+        title="Discard your changes?"
+        message="This meal has edits you have not saved. Leaving now loses them."
+        confirmLabel="Discard and leave"
+        cancelLabel="Keep editing"
+        onConfirm={() => { const to = leaveTo; setLeaveTo(null); setDirty(false); navigate(to); }}
+        onCancel={() => setLeaveTo(null)}
+      />
     </div>
   );
 }

@@ -940,3 +940,341 @@ body {
   color: #c0392b;
   font-weight: 600;
 }
+
+/* ==========================================================================
+   Accessibility helpers
+   ========================================================================== */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Navigation
+   ========================================================================== */
+
+.nav-links {
+  display: flex;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-link {
+  display: inline-block;
+  padding: 0.5rem 0.85rem;
+  border-radius: 6px;
+  color: #374151;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.nav-link:hover { background: #f3f4f6; }
+
+.nav-link-active {
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.nav-toggle {
+  display: none;
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 1.25rem;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   Toasts
+   ========================================================================== */
+
+.toast-stack {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: min(26rem, calc(100vw - 2rem));
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  background: #1f2937;
+  color: #fff;
+  font-size: 0.925rem;
+  line-height: 1.4;
+}
+
+.toast-success { background: #047857; }
+.toast-error { background: #b91c1c; }
+
+.toast-message { flex: 1; }
+
+.toast-close {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.15rem;
+  opacity: 0.85;
+}
+
+.toast-close:hover { opacity: 1; }
+
+/* ==========================================================================
+   Modals
+   ========================================================================== */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 900;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 10px;
+  padding: 1.5rem;
+  width: min(30rem, 100%);
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.25);
+}
+
+.modal-wide { width: min(44rem, 100%); }
+
+.modal h3 { margin-top: 0; }
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   Pickers and lists
+   ========================================================================== */
+
+.picker-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  max-height: 22rem;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.picker-list li + li { border-top: 1px solid #f3f4f6; }
+
+.picker-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.7rem 0.9rem;
+  cursor: pointer;
+  font-weight: 400;
+}
+
+.picker-item:hover { background: #f9fafb; }
+
+.picker-name { font-weight: 600; }
+.picker-brand { font-weight: 400; color: #6b7280; }
+
+.picker-macros {
+  color: #6b7280;
+  font-size: 0.85rem;
+  text-align: right;
+}
+
+.shopping-items { list-style: none; margin: 0; padding: 0; }
+.shopping-item { display: flex; align-items: center; gap: 0.5rem; }
+.shopping-item + .shopping-item { border-top: 1px solid #f3f4f6; }
+.shopping-item.checked .picker-name { text-decoration: line-through; color: #9ca3af; }
+.shopping-item .picker-item { flex: 1; }
+.shopping-qty { font-weight: 400; color: #4b5563; }
+.store-cost { font-weight: 600; color: #047857; }
+
+/* ==========================================================================
+   Dashboard filters and cards
+   ========================================================================== */
+
+.filter-bar {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.filter-bar .search-box { flex: 1 1 16rem; margin: 0; }
+.filter-sort { margin: 0; min-width: 12rem; }
+
+.filter-check {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.925rem;
+  white-space: nowrap;
+  padding-bottom: 0.5rem;
+}
+
+.meal-macros {
+  display: flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  margin: 0.6rem 0 0.15rem;
+  font-size: 0.925rem;
+}
+
+.meal-macros strong { font-size: 1.05rem; }
+
+.meal-macros-caption,
+.macro-caption {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.macro-sub { font-weight: 400; color: #6b7280; font-size: 0.85rem; }
+
+.page-intro {
+  color: #4b5563;
+  margin: 0 0 1.25rem;
+  max-width: 58rem;
+}
+
+.section-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.scale-row { display: flex; gap: 0.5rem; }
+.scale-row input { flex: 1; min-width: 0; }
+
+.ingredient-summary {
+  color: #6b7280;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   Barcode lookup
+   ========================================================================== */
+
+.barcode-lookup { margin-bottom: 1rem; }
+.barcode-row { display: flex; gap: 0.5rem; }
+.barcode-row input { flex: 1; min-width: 0; }
+
+/* ==========================================================================
+   Sortable table headers
+   ========================================================================== */
+
+.sort-button {
+  background: none;
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  width: 100%;
+  text-align: left;
+}
+
+.sort-button:hover { color: #2563eb; }
+
+.row-header { text-align: left; font-weight: 600; }
+
+/* Cards replace the table on narrow screens. */
+.ingredient-cards { display: none; list-style: none; margin: 0; padding: 0; }
+
+.ingredient-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.9rem;
+  margin-bottom: 0.75rem;
+  background: #fff;
+}
+
+.ingredient-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.ingredient-card-amount {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-bottom: 0.4rem;
+}
+
+/* ==========================================================================
+   Narrow screens
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .nav-toggle { display: block; }
+
+  .nav-content { flex-wrap: wrap; }
+
+  .nav-actions {
+    display: none;
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding-top: 0.75rem;
+  }
+
+  .nav-actions-open { display: flex; }
+
+  .nav-links { flex-direction: column; }
+
+  .ingredients-table { display: none; }
+  .ingredient-cards { display: block; }
+
+  .filter-bar { flex-direction: column; align-items: stretch; }
+  .filter-bar .search-box,
+  .filter-sort { width: 100%; }
+
+  .picker-item {
+    grid-template-columns: auto 1fr;
+    grid-template-areas: "check name" ". macros";
+  }
+  .picker-item input[type="checkbox"] { grid-area: check; }
+  .picker-name { grid-area: name; }
+  .picker-macros { grid-area: macros; text-align: left; }
+
+  .meal-view-actions { flex-wrap: wrap; }
+  .toast-stack { left: 1rem; right: 1rem; max-width: none; }
+}

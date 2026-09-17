@@ -1,7 +1,14 @@
 import React from 'react';
 import { calculateIngredientTotals } from '../utils/mealCalc.js';
 
-function MacroTotals({ meal }) {
+const TARGET_ROWS = [
+  { key: 'calories', label: 'Calories', suffix: '' },
+  { key: 'protein', label: 'Protein', suffix: 'g' },
+  { key: 'carbs', label: 'Carbs', suffix: 'g' },
+  { key: 'fat', label: 'Fat', suffix: 'g' },
+];
+
+function MacroTotals({ meal, targets }) {
   const ingredients = Array.isArray(meal?.ingredients) ? meal.ingredients : [];
 
   // Calculate meal totals
@@ -51,6 +58,8 @@ function MacroTotals({ meal }) {
     // If no servingsPerContainer, include full price (ingredient is consumed entirely)
     return sum + price;
   }, 0);
+
+  const hasTargets = TARGET_ROWS.some(({ key }) => (Number(targets?.[key]) || 0) > 0);
 
   const storeCostPerServing = servingsPerMeal > 0 ? storeCost / servingsPerMeal : 0;
   const mealCostPerServing = servingsPerMeal > 0 ? mealCost / servingsPerMeal : 0;
@@ -103,6 +112,29 @@ function MacroTotals({ meal }) {
             </div>
           </div>
         </div>
+
+        {hasTargets && (
+          <div className="totals-section">
+            <h4>Against your daily goals</h4>
+            <div className="macro-items">
+              {TARGET_ROWS.map(({ key, label, suffix }) => {
+                const goal = Number(targets?.[key]) || 0;
+                if (goal <= 0) return null;
+                const value = perServingMacros[key];
+                const percent = Math.round((value / goal) * 100);
+                return (
+                  <div className="macro-item" key={key}>
+                    <span className="macro-label">{label}:</span>
+                    <span className="macro-value">
+                      {percent}% <span className="macro-sub">({value.toFixed(0)}{suffix} of {goal}{suffix})</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="macro-caption">One serving, against your daily target.</p>
+          </div>
+        )}
 
         {(storeCost > 0 || mealCost > 0) && (
           <div className="totals-section">
