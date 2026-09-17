@@ -64,9 +64,15 @@ A cloud-based meal builder. It tracks meals, ingredients and macros, with links 
    - `JWT_SECRET` — 32 or more random characters
 
    Optional, for password reset email:
-   - `RESEND_API_KEY` and `MAIL_FROM` — without them the reset link is
+   - `GMAIL_USER` and `GMAIL_APP_PASSWORD` — without them the reset link is
      logged to the server console rather than sent
+   - `MAIL_FROM_NAME` — display name on the From header
    - `APP_ORIGIN` — the origin used to build reset links
+
+   Email goes through Gmail SMTP, so the app sends as a real Gmail address.
+   `GMAIL_APP_PASSWORD` is a Google App Password, not the account password.
+   The account needs 2-Step Verification enabled to create one, under
+   Google Account then Security then 2-Step Verification then App passwords.
 
    Generate a secret with:
    ```bash
@@ -229,6 +235,7 @@ meal-prep-pantry/
 - Every meal query filters on the authenticated `userId`, so one account cannot read or change another account's meals.
 - Product URLs are restricted to `http:` and `https:` on both the client and the server, so a `javascript:` URL cannot reach an anchor `href`.
 - Login throttling is per serverless instance and is best-effort only. See the comment at the top of `lib/rateLimit.js`. Move the counters to a shared store if you need a hard limit.
+- The Gmail App Password grants mail access to that account and bypasses 2-Step Verification for sending. Keep it in the deployment environment only, never in the repository.
 - The front end and the API share one origin, so the API sets no CORS headers. Setting `VITE_API_URL` to a different origin will fail CORS until you add the headers back deliberately.
 
 ## Known limitations
@@ -238,6 +245,7 @@ meal-prep-pantry/
   density the app does not store, so a meal mixing grams and cups reports each separately.
 - Login throttling and reset throttling are per serverless instance. See `lib/rateLimit.js`.
 - Open Food Facts coverage is good for packaged groceries and thin for fresh produce.
+- Gmail caps a free account near 500 recipients per day. Password resets sit far below that, but it is not a bulk sending path.
 - There is no pagination on the dashboard.
 - The PWA has a manifest and an icon but no offline service worker yet.
 
