@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { register, login, saveCurrentUser } from '../utils/api.js';
 
-function Landing({ onLogin }) {
+function Landing({ onLogin, notice = '' }) {
   const [isCreating, setIsCreating] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -63,6 +63,7 @@ function Landing({ onLogin }) {
         <div className="auth-card">
           <h2>{isCreating ? 'Create Account' : 'Login'}</h2>
           
+          {notice && !error && <div className="error-message">{notice}</div>}
           {error && <div className="error-message">{error}</div>}
 
           <form onSubmit={handleSubmit}>
