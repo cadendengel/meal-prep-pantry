@@ -5,13 +5,20 @@ A cloud-based meal builder. It tracks meals, ingredients and macros, with links 
 ## Features
 
 - Create and manage meals with per-ingredient tracking
+- A pantry of saved ingredients. Enter an ingredient once, then reuse it in any meal
+- Barcode lookup through Open Food Facts, OCR label scanning, or pasted label text
 - Automatic macro totals (calories, protein, carbs, fat), per meal and per serving
-- OCR nutrition label scanning, or paste the label text
-- Store detection from a product URL (HEB, Walmart, Sam's Club and others)
+- Daily macro targets, with each meal shown as a share of them
+- Shopping list across several meals, grouped by store, with combined quantities
+- Unit conversion within mass and within volume
+- Recipe scaling and meal duplication
+- Amount entry in grams or in servings, each deriving the other
 - Cost tracking, both store cost and the portion actually used
-- Sortable ingredient table
-- Responsive layout
-- JWT authentication with bcrypt password hashing
+- Sortable ingredient table on desktop, cards on mobile
+- CSV and JSON export
+- Store detection from a product URL (HEB, Walmart, Sam's Club and others)
+- JWT authentication with bcrypt password hashing, and password reset by email
+- Installable as a PWA
 
 ## Tech stack
 
@@ -52,9 +59,14 @@ A cloud-based meal builder. It tracks meals, ingredients and macros, with links 
    cp .env.example .env.local
    ```
 
-4. Edit `.env.local` and set both values:
+4. Edit `.env.local` and set both required values:
    - `MONGODB_URI` — your Atlas connection string
    - `JWT_SECRET` — 32 or more random characters
+
+   Optional, for password reset email:
+   - `RESEND_API_KEY` and `MAIL_FROM` — without them the reset link is
+     logged to the server console rather than sent
+   - `APP_ORIGIN` — the origin used to build reset links
 
    Generate a secret with:
    ```bash
@@ -107,7 +119,9 @@ npm run preview
    vercel --prod
    ```
 
-The app creates its own indexes on first request: a unique index on `users.email`, and a compound index on `meals.userId` and `meals.updatedAt`.
+The app creates its own indexes on first request: a unique index on `users.email`,
+a compound index on `meals.userId` and `meals.updatedAt`, two indexes on the pantry
+collection, and a TTL index that expires password reset tokens automatically.
 
 ## Usage
 
@@ -158,8 +172,11 @@ Enter a full `http://` or `https://` product URL. The app derives the store name
 
 All data lives in MongoDB Atlas, in the `mealprep` database.
 
-- `users` — one document per account: `name`, `email`, a bcrypt `password` hash, `createdAt`
+- `users` — one document per account: `name`, `email`, a bcrypt `password` hash, optional `targets`, `createdAt`
 - `meals` — one document per meal, owned through a `userId` field
+- `ingredients` — the pantry. Values are **copied** into a meal when added, so editing
+  a pantry item never rewrites a meal you already saved
+- `passwordResets` — hashed, single-use reset tokens that expire after 30 minutes
 
 The browser stores only the JWT and a cached copy of your name and email, both in `localStorage`. Clearing browser data logs you out. It does not delete your meals.
 
@@ -217,9 +234,12 @@ meal-prep-pantry/
 ## Known limitations
 
 - Ingredient prices are stored as floating-point numbers. Cost totals can drift by a fraction of a cent.
-- `calculateMealServingSize` sums quantities by unit without converting between units. A meal mixing grams and cups reports each unit separately, and the saved `servingSize` uses whichever unit comes first.
-- There is no password reset flow.
+- Quantities convert within mass and within volume, but not between them. That needs a
+  density the app does not store, so a meal mixing grams and cups reports each separately.
+- Login throttling and reset throttling are per serverless instance. See `lib/rateLimit.js`.
+- Open Food Facts coverage is good for packaged groceries and thin for fresh produce.
 - There is no pagination on the dashboard.
+- The PWA has a manifest and an icon but no offline service worker yet.
 
 ## Possible future work
 
