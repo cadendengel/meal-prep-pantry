@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { createWorker } from 'tesseract.js';
 import { parseNutritionLabel, hasValidNutritionData, formatNutritionSummary } from '../utils/nutritionParser.js';
+import { calculateIngredientTotals, isSafeHttpUrl } from '../utils/mealCalc.js';
 
 const SERVING_SIZE_UNITS = [
   'serving',
@@ -33,8 +34,6 @@ function IngredientRow({ ingredient, index, onUpdate, onDelete }) {
 
   const applyNutritionFromText = (text, noDataMessage) => {
     const nutritionData = parseNutritionLabel(text);
-
-    console.log('Parsed Nutrition:', nutritionData);
 
     if (!hasValidNutritionData(nutritionData)) {
       alert(noDataMessage);
@@ -118,8 +117,6 @@ function IngredientRow({ ingredient, index, onUpdate, onDelete }) {
 
       // Perform OCR on canvas (supports all image formats)
       const { data: { text } } = await worker.recognize(canvas);
-      
-      console.log('OCR Text:', text);
 
       // Terminate worker
       await worker.terminate();
@@ -202,6 +199,9 @@ function IngredientRow({ ingredient, index, onUpdate, onDelete }) {
       setMacroTextInput('');
     }
   };
+
+  // Guarded so a record that is missing a macro field renders 0.0, not NaN.
+  const ingredientTotals = calculateIngredientTotals(ingredient);
 
   return (
     <div className="ingredient-row">
@@ -443,10 +443,15 @@ function IngredientRow({ ingredient, index, onUpdate, onDelete }) {
               <label>Product URL (optional)</label>
               <input
                 type="url"
-                value={ingredient.productUrl}
+                value={ingredient.productUrl || ''}
                 onChange={(e) => handleFieldChange('productUrl', e.target.value)}
                 placeholder="https://..."
               />
+              {ingredient.productUrl && ingredient.productUrl.trim() && !isSafeHttpUrl(ingredient.productUrl.trim()) && (
+                <span className="field-hint field-hint-error">
+                  Enter a full http:// or https:// address.
+                </span>
+              )}
             </div>
           </div>
 
@@ -464,18 +469,10 @@ function IngredientRow({ ingredient, index, onUpdate, onDelete }) {
 
           <div className="ingredient-totals">
             <strong>Ingredient Totals:</strong>
-            <span>
-              {(ingredient.caloriesPerServing * ingredient.servingsUsed).toFixed(1)} cal
-            </span>
-            <span>
-              {(ingredient.proteinPerServing * ingredient.servingsUsed).toFixed(1)}g protein
-            </span>
-            <span>
-              {(ingredient.carbsPerServing * ingredient.servingsUsed).toFixed(1)}g carbs
-            </span>
-            <span>
-              {(ingredient.fatPerServing * ingredient.servingsUsed).toFixed(1)}g fat
-            </span>
+            <span>{ingredientTotals.calories.toFixed(1)} cal</span>
+            <span>{ingredientTotals.protein.toFixed(1)}g protein</span>
+            <span>{ingredientTotals.carbs.toFixed(1)}g carbs</span>
+            <span>{ingredientTotals.fat.toFixed(1)}g fat</span>
           </div>
         </div>
       )}

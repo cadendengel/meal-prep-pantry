@@ -1,16 +1,14 @@
 import { ObjectId } from 'mongodb';
 import { getMealsCollection } from '../lib/mongodb.js';
 import { authenticateRequest, sendError, sendSuccess } from '../lib/auth.js';
+import { validateMealPayload, buildMealFields } from '../lib/validation.js';
 
 export default async function handler(req, res) {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
+  // The front end and the API are served from one origin, so no CORS
+  // headers are needed. OPTIONS is answered for well-behaved clients.
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    res.setHeader('Allow', 'GET, PUT, DELETE');
+    return res.status(204).end();
   }
 
   try {
@@ -19,7 +17,10 @@ export default async function handler(req, res) {
       return sendError(res, 401, 'Unauthorized');
     }
 
-    const id = req.query?.id;
+    // Normalize route param shape (can be string or string[] depending on runtime)
+    const rawId = req.query?.id;
+    const id = Array.isArray(rawId) ? rawId[0] : rawId;
+
     if (!id || !ObjectId.isValid(id)) {
       return sendError(res, 400, 'Invalid meal ID');
     }
@@ -33,64 +34,45 @@ export default async function handler(req, res) {
         return sendError(res, 404, 'Meal not found');
       }
 
+      const { _id, ...mealFields } = meal;
+
       return sendSuccess(res, {
         meal: {
-          ...meal,
-          id: meal._id.toString(),
-          _id: undefined,
+          ...mealFields,
+          id: _id.toString(),
         },
       });
     }
 
     if (req.method === 'PUT') {
-      const mealData = req.body;
-
-      if (!mealData.name || !mealData.name.trim()) {
-        return sendError(res, 400, 'Meal name is required');
+      const validationError = validateMealPayload(req.body);
+      if (validationError) {
+        return sendError(res, 400, validationError);
       }
 
-      if (!mealData.servingsPerMeal || mealData.servingsPerMeal <= 0) {
-        return sendError(res, 400, 'Servings per meal must be greater than 0');
-      }
+      const updatedFields = buildMealFields(req.body);
 
-      if (mealData.ingredients) {
-        for (const ingredient of mealData.ingredients) {
-          if (ingredient.productUrl && ingredient.productUrl.trim()) {
-            try {
-              new URL(ingredient.productUrl);
-            } catch {
-              return sendError(res, 400, `Invalid URL for ingredient: ${ingredient.name}`);
-            }
-          }
-        }
-      }
+      // The filter carries userId, so one round trip both checks ownership
+      // and applies the update.
+      // Driver v6 returns the document itself, or null when nothing matched.
+      // (v5 and earlier wrapped it in a `value` property. The pinned major
+      // version here is 6, so the document is used directly.)
+      const updated = await meals.findOneAndUpdate(
+        { _id: mealObjectId, userId },
+        { $set: updatedFields },
+        { returnDocument: 'after' }
+      );
 
-      const existingMeal = await meals.findOne({ _id: mealObjectId, userId });
-      if (!existingMeal) {
+      if (!updated) {
         return sendError(res, 404, 'Meal not found');
       }
 
-      const updatedMeal = {
-        name: mealData.name.trim(),
-        notes: mealData.notes || '',
-        servingSize: mealData.servingSize || null,
-        servingUnit: mealData.servingUnit || 'g',
-        servingsPerMeal: mealData.servingsPerMeal,
-        ingredients: mealData.ingredients || [],
-        updatedAt: new Date().toISOString(),
-      };
-
-      await meals.updateOne(
-        { _id: mealObjectId, userId },
-        { $set: updatedMeal }
-      );
+      const { _id, ...mealFields } = updated;
 
       return sendSuccess(res, {
         meal: {
-          ...existingMeal,
-          ...updatedMeal,
-          id,
-          _id: undefined,
+          ...mealFields,
+          id: _id.toString(),
         },
       });
     }
@@ -104,6 +86,7 @@ export default async function handler(req, res) {
       return sendSuccess(res, { message: 'Meal deleted successfully' });
     }
 
+    res.setHeader('Allow', 'GET, PUT, DELETE');
     return sendError(res, 405, 'Method not allowed');
   } catch (error) {
     console.error('Meal API error:', error);

@@ -3,16 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import MacroTotals from '../components/MacroTotals.jsx';
 import { getStoreFromUrl } from '../utils/nutritionParser.js';
 import { getMeal } from '../utils/api.js';
-
-// Helper functions - inline
-function calculateIngredientTotals(ingredient) {
-  return {
-    calories: (ingredient.caloriesPerServing || 0) * (ingredient.servingsUsed || 0),
-    protein: (ingredient.proteinPerServing || 0) * (ingredient.servingsUsed || 0),
-    carbs: (ingredient.carbsPerServing || 0) * (ingredient.servingsUsed || 0),
-    fat: (ingredient.fatPerServing || 0) * (ingredient.servingsUsed || 0),
-  };
-}
+import { calculateIngredientTotals, isSafeHttpUrl } from '../utils/mealCalc.js';
 
 function getIngredientServingSizeLabel(ingredient) {
   if (ingredient.servingSizeQuantity !== null && ingredient.servingSizeQuantity !== undefined) {
@@ -82,20 +73,20 @@ function MealView({ user, onLogout }) {
           bValue = (getStoreFromUrl(b.productUrl) || '').toLowerCase();
           break;
         case 'calories':
-          aValue = (a.caloriesPerServing || 0) * (a.servingsUsed || 0);
-          bValue = (b.caloriesPerServing || 0) * (b.servingsUsed || 0);
+          aValue = calculateIngredientTotals(a).calories;
+          bValue = calculateIngredientTotals(b).calories;
           break;
         case 'protein':
-          aValue = (a.proteinPerServing || 0) * (a.servingsUsed || 0);
-          bValue = (b.proteinPerServing || 0) * (b.servingsUsed || 0);
+          aValue = calculateIngredientTotals(a).protein;
+          bValue = calculateIngredientTotals(b).protein;
           break;
         case 'carbs':
-          aValue = (a.carbsPerServing || 0) * (a.servingsUsed || 0);
-          bValue = (b.carbsPerServing || 0) * (b.servingsUsed || 0);
+          aValue = calculateIngredientTotals(a).carbs;
+          bValue = calculateIngredientTotals(b).carbs;
           break;
         case 'fat':
-          aValue = (a.fatPerServing || 0) * (a.servingsUsed || 0);
-          bValue = (b.fatPerServing || 0) * (b.servingsUsed || 0);
+          aValue = calculateIngredientTotals(a).fat;
+          bValue = calculateIngredientTotals(b).fat;
           break;
         case 'price':
           aValue = a.price || 0;
@@ -238,14 +229,14 @@ function MealView({ user, onLogout }) {
                         )}
                       </td>
                       <td>
-                        {ingredient.servingsUsed} servings
+                        {ingredient.servingsUsed ?? 0} servings
                         {getIngredientServingSizeLabel(ingredient) && (
                           <div className="serving-detail">({getIngredientServingSizeLabel(ingredient)})</div>
                         )}
                       </td>
                       <td>{getStoreFromUrl(ingredient.productUrl) || '-'}</td>
                       <td>
-                        {ingredient.productUrl ? (
+                        {isSafeHttpUrl(ingredient.productUrl) ? (
                           <a
                             href={ingredient.productUrl}
                             target="_blank"
@@ -263,7 +254,7 @@ function MealView({ user, onLogout }) {
                       <td>{totals.carbs.toFixed(1)}g</td>
                       <td>{totals.fat.toFixed(1)}g</td>
                       <td>
-                        {ingredient.price ? `$${ingredient.price.toFixed(2)}` : '-'}
+                        {Number(ingredient.price) ? `$${Number(ingredient.price).toFixed(2)}` : '-'}
                       </td>
                     </tr>
                   );

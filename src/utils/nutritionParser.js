@@ -15,57 +15,68 @@ export function getStoreFromUrl(url) {
     return null;
   }
 
+  let urlObj;
   try {
-    const urlObj = new URL(url);
-    const hostname = urlObj.hostname.toLowerCase();
-    
-    // Store name mappings
-    const storeMap = {
-      'amazon.com': 'Amazon',
-      'walmart.com': 'Walmart',
-      'heb.com': 'HEB',
-      'samsclub.com': "Sam's Club",
-      'kroger.com': 'Kroger',
-      'safeway.com': 'Safeway',
-      'albertsons.com': 'Albertsons',
-      'trader-joes.com': "Trader Joe's",
-      'whole-foods-market.com': 'Whole Foods',
-      'wholefoods.com': 'Whole Foods',
-      'costco.com': 'Costco',
-      'target.com': 'Target',
-      'sprouts.com': 'Sprouts',
-      'instacart.com': 'Instacart',
-      'doordash.com': 'DoorDash',
-      'aldi.com': 'Aldi',
-      'publix.com': 'Publix',
-      'wegmans.com': 'Wegmans',
-      'ralphs.com': 'Ralphs',
-      'vons.com': 'Vons',
-      'piggly-wiggly.com': "Piggly Wiggly",
-      'whole-foods.com': 'Whole Foods',
-    };
-    
-    // Remove 'www.' prefix for lookup
-    const cleanedHostname = hostname.replace(/^www\./, '');
-    
-    // Check for exact match
-    if (storeMap[cleanedHostname]) {
-      return storeMap[cleanedHostname];
-    }
-    
-    // Check for partial matches (e.g., subdomain stores)
-    for (const [domain, name] of Object.entries(storeMap)) {
-      if (cleanedHostname.includes(domain) || domain.includes(cleanedHostname)) {
-        return name;
-      }
-    }
-    
-    // If no match found, return the domain as-is with capitalized first letter
-    return cleanedHostname.split('.')[0].charAt(0).toUpperCase() + cleanedHostname.split('.')[0].slice(1);
+    urlObj = new URL(url);
   } catch {
     // Invalid URL
     return null;
   }
+
+  // Only http(s) URLs name a store. A "javascript:" URL parses but has an
+  // empty hostname, which must not fall through to a store name.
+  if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
+    return null;
+  }
+
+  const hostname = urlObj.hostname.toLowerCase();
+  if (!hostname) {
+    return null;
+  }
+
+  // Store name mappings
+  const storeMap = {
+    'amazon.com': 'Amazon',
+    'walmart.com': 'Walmart',
+    'heb.com': 'HEB',
+    'samsclub.com': "Sam's Club",
+    'kroger.com': 'Kroger',
+    'safeway.com': 'Safeway',
+    'albertsons.com': 'Albertsons',
+    'trader-joes.com': "Trader Joe's",
+    'whole-foods-market.com': 'Whole Foods',
+    'wholefoods.com': 'Whole Foods',
+    'costco.com': 'Costco',
+    'target.com': 'Target',
+    'sprouts.com': 'Sprouts',
+    'instacart.com': 'Instacart',
+    'doordash.com': 'DoorDash',
+    'aldi.com': 'Aldi',
+    'publix.com': 'Publix',
+    'wegmans.com': 'Wegmans',
+    'ralphs.com': 'Ralphs',
+    'vons.com': 'Vons',
+    'piggly-wiggly.com': "Piggly Wiggly",
+    'whole-foods.com': 'Whole Foods',
+  };
+
+  // Remove 'www.' prefix for lookup
+  const cleanedHostname = hostname.replace(/^www\./, '');
+
+  // Match the domain or a subdomain of it, never a substring. A loose
+  // substring test labels "evil-amazon.com.attacker.net" as Amazon.
+  for (const [domain, name] of Object.entries(storeMap)) {
+    if (cleanedHostname === domain || cleanedHostname.endsWith(`.${domain}`)) {
+      return name;
+    }
+  }
+
+  // If no match found, return the domain as-is with capitalized first letter
+  const label = cleanedHostname.split('.')[0];
+  if (!label) {
+    return null;
+  }
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 /**
@@ -79,7 +90,10 @@ function parseServingSizeComponents(servingSizeText) {
   }
 
   const cleaned = servingSizeText.toLowerCase().trim();
-  const quantityMatch = cleaned.match(/(\d+\.?\d*|\d+\s*\/\s*\d+)/);
+  // The fraction alternative must come first. Regex alternation is ordered,
+  // so a plain-number branch placed first matches the "1" of "1/2" and the
+  // fraction branch never runs.
+  const quantityMatch = cleaned.match(/(\d+\s*\/\s*\d+|\d+\.?\d*)/);
 
   let quantity = null;
   if (quantityMatch) {
@@ -203,6 +217,8 @@ export function parseNutritionLabel(text) {
 
   // Extract total carbohydrates
   // Patterns: "Total Carbohydrate 30g", "Carbs: 30g", etc.
+  // "Total Carbohydrate" is the value we want. Fiber and sugar lines sit
+  // underneath it and must not be picked up by the looser patterns.
   const carbsPatterns = [
     /total carbohydrate[:\s]+(\d+\.?\d*)\s*g/i,
     /carbohydrate[:\s]+(\d+\.?\d*)\s*g/i,
@@ -220,10 +236,12 @@ export function parseNutritionLabel(text) {
 
   // Extract total fat
   // Patterns: "Total Fat 8g", "Fat: 8g", etc.
+  // "Total Fat" is the value we want. The looser patterns must not match a
+  // "Saturated Fat" or "Trans Fat" line and report it as total fat.
   const fatPatterns = [
     /total fat[:\s]+(\d+\.?\d*)\s*g/i,
-    /fat[:\s]+(\d+\.?\d*)\s*g/i,
-    /(\d+\.?\d*)\s*g?\s*fat/i,
+    /(?<!saturated |trans |monounsaturated |polyunsaturated )\bfat[:\s]+(\d+\.?\d*)\s*g/i,
+    /(\d+\.?\d*)\s*g?\s*(?<!saturated |trans )fat/i,
   ];
 
   for (const pattern of fatPatterns) {

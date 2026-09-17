@@ -1,48 +1,7 @@
 import React, { useState } from 'react';
 import IngredientRow from './IngredientRow.jsx';
 import MacroTotals from './MacroTotals.jsx';
-
-// Helper function
-function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
-
-// Calculate meal serving size based on ingredients
-function calculateMealServingSize(ingredients, servingsPerMeal) {
-  if (!servingsPerMeal || servingsPerMeal <= 0) return null;
-  
-  // Group ingredients by unit and sum total quantities used
-  const byUnit = {};
-  
-  for (const ingredient of ingredients) {
-    if (ingredient.servingSizeQuantity !== null && ingredient.servingSizeQuantity !== undefined) {
-      const unit = ingredient.servingSizeUnit || 'serving';
-      // Calculate total amount of this ingredient used in the meal
-      const servingsUsed = ingredient.servingsUsed || 0;
-      const totalQuantity = ingredient.servingSizeQuantity * servingsUsed;
-      
-      if (!byUnit[unit]) {
-        byUnit[unit] = 0;
-      }
-      byUnit[unit] += totalQuantity;
-    }
-  }
-  
-  // If no ingredients with quantities, return null
-  if (Object.keys(byUnit).length === 0) return null;
-  
-  // Divide by servings per meal for per-serving amount
-  const perServing = {};
-  for (const unit in byUnit) {
-    perServing[unit] = byUnit[unit] / servingsPerMeal;
-  }
-  
-  return {
-    totals: byUnit,
-    perServing: perServing,
-    hasMultipleUnits: Object.keys(byUnit).length > 1,
-  };
-}
+import { generateId, calculateMealServingSize } from '../utils/mealCalc.js';
 
 function MealForm({ meal, onSave, onCancel, saving = false }) {
   const [formData, setFormData] = useState(meal);
@@ -163,19 +122,11 @@ function MealForm({ meal, onSave, onCancel, saving = false }) {
             <div className="meal-size-calculation">
               <strong>Per Serving:</strong>
               <div className="serving-breakdown">
-                {servingSizeCalc.hasMultipleUnits ? (
-                  Object.entries(servingSizeCalc.perServing).map(([unit, amount]) => (
-                    <span key={unit}>
-                      {amount.toFixed(2)} {unit}
-                    </span>
-                  ))
-                ) : (
-                  Object.entries(servingSizeCalc.perServing).map(([unit, amount]) => (
-                    <span key={unit}>
-                      {amount.toFixed(2)} {unit}
-                    </span>
-                  ))
-                )}
+                {Object.entries(servingSizeCalc.perServing).map(([unit, amount]) => (
+                  <span key={unit}>
+                    {amount.toFixed(2)} {unit}
+                  </span>
+                ))}
               </div>
             </div>
           );
