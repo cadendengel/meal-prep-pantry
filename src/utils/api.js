@@ -278,3 +278,130 @@ export async function deleteMeal(id) {
 
   return data;
 }
+
+// ============================================================================
+// Pantry API
+// ============================================================================
+
+/**
+ * List every saved pantry ingredient.
+ *
+ * @returns {Promise<Array>} Ingredients, sorted by name
+ */
+export async function getPantry() {
+  const data = await apiRequest('/ingredients', { method: 'GET' });
+  return data.ingredients;
+}
+
+/**
+ * Find a saved ingredient by barcode.
+ *
+ * @param {string} barcode - Product barcode
+ * @returns {Promise<object | null>} The ingredient, or null when not saved
+ */
+export async function findPantryByBarcode(barcode) {
+  const data = await apiRequest(`/ingredients?barcode=${encodeURIComponent(barcode)}`, { method: 'GET' });
+  return data.ingredients[0] || null;
+}
+
+/**
+ * Save a new pantry ingredient.
+ *
+ * @param {object} ingredient - Ingredient fields
+ * @returns {Promise<object>} The saved ingredient
+ */
+export async function createPantryIngredient(ingredient) {
+  const data = await apiRequest('/ingredients', {
+    method: 'POST',
+    body: JSON.stringify(ingredient),
+  });
+  return data.ingredient;
+}
+
+/**
+ * Update a pantry ingredient.
+ *
+ * @param {string} id - Ingredient id
+ * @param {object} ingredient - Ingredient fields
+ * @returns {Promise<object>} The updated ingredient
+ */
+export async function updatePantryIngredient(id, ingredient) {
+  const data = await apiRequest(`/ingredient?id=${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(ingredient),
+  });
+  return data.ingredient;
+}
+
+/**
+ * Delete a pantry ingredient.
+ *
+ * @param {string} id - Ingredient id
+ * @returns {Promise<object>} Server acknowledgement
+ */
+export async function deletePantryIngredient(id) {
+  return apiRequest(`/ingredient?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+// ============================================================================
+// Profile API
+// ============================================================================
+
+/**
+ * Read the signed-in user's profile and macro targets.
+ *
+ * @returns {Promise<object>} Profile with a targets object
+ */
+export async function getProfile() {
+  const data = await apiRequest('/user/profile', { method: 'GET' });
+  return data.user;
+}
+
+/**
+ * Update the profile name, the macro targets, or both.
+ *
+ * @param {{name?: string, targets?: object}} update - Fields to change
+ * @returns {Promise<object>} The updated profile
+ */
+export async function updateProfile(update) {
+  const data = await apiRequest('/user/profile', {
+    method: 'PUT',
+    body: JSON.stringify(update),
+  });
+  return data.user;
+}
+
+// ============================================================================
+// Password reset
+// ============================================================================
+
+/**
+ * Ask for a password reset link.
+ *
+ * The response is the same whether or not the address has an account.
+ *
+ * @param {string} email - Email address
+ * @returns {Promise<object>} Generic acknowledgement
+ */
+export async function requestPasswordReset(email) {
+  return apiRequest('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+/**
+ * Set a new password using a reset token, then sign in.
+ *
+ * @param {string} token - Token from the emailed link
+ * @param {string} password - New password
+ * @returns {Promise<object>} The signed-in user
+ */
+export async function resetPassword(token, password) {
+  const data = await apiRequest('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, password }),
+  });
+  setToken(data.token);
+  return data.user;
+}
