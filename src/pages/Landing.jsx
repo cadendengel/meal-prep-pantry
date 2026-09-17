@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { register, login, saveCurrentUser } from '../utils/api.js';
 
 function Landing({ onLogin, notice = '' }) {
@@ -112,6 +113,12 @@ function Landing({ onLogin, notice = '' }) {
             </button>
           </form>
 
+          {!isCreating && (
+            <div className="auth-toggle">
+              <p><Link to="/forgot-password" className="link-button">Forgot your password?</Link></p>
+            </div>
+          )}
+
           <div className="auth-toggle">
             {isCreating ? (
               <p>
@@ -149,7 +156,7 @@ function Landing({ onLogin, notice = '' }) {
 
           <div className="note">
             <small>
-              <strong>Note:</strong> Your data is securely stored in the cloud and synced across devices.
+              <strong>Note:</strong> Your meals are stored in the cloud and sync across your devices.
             </small>
           </div>
         </div>
