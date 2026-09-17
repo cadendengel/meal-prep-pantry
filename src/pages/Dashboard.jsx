@@ -214,7 +214,7 @@ function Dashboard({ user, onLogout, targets }) {
 
                   <div className="meal-meta">
                     <span>{meal.servingsPerMeal} servings</span>
-                    <span>{s.ingredientCount} ingredients</span>
+                    <span>{s.ingredientCount} ingredient{s.ingredientCount === 1 ? '' : 's'}</span>
                     {s.cost > 0 && <span>${s.cost.toFixed(2)} per serving</span>}
                     {proteinShare !== null && <span>{proteinShare}% of protein goal</span>}
                   </div>

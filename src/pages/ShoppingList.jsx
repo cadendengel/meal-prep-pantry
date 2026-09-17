@@ -175,7 +175,9 @@ function ShoppingList({ user, onLogout }) {
                         onChange={() => toggleMeal(meal.id)}
                       />
                       <span className="picker-name">{meal.name}</span>
-                      <span className="picker-macros">{meal.ingredients?.length || 0} ingredients</span>
+                      <span className="picker-macros">
+                        {meal.ingredients?.length || 0} ingredient{(meal.ingredients?.length || 0) === 1 ? '' : 's'}
+                      </span>
                     </label>
                   </li>
                 ))}

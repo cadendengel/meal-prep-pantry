@@ -138,13 +138,26 @@ function MealForm({ meal, onSave, onCancel, saving = false, onDirtyChange, targe
     onSave(formData);
   };
 
+  /**
+   * Report a browser validation failure.
+   *
+   * Native validation blocks submit before onSubmit runs, and the bubble it
+   * shows is easy to miss on a long form. Without this, a rejected field
+   * looks like a Save button that does nothing.
+   */
+  const handleInvalid = (event) => {
+    const field = event.target;
+    const label = field.labels?.[0]?.textContent?.replace('*', '').trim() || field.name || 'A field';
+    toast.error(`${label}: ${field.validationMessage}`);
+  };
+
   const servingSizeCalc = useMemo(
     () => calculateMealServingSize(formData.ingredients, formData.servingsPerMeal),
     [formData.ingredients, formData.servingsPerMeal]
   );
 
   return (
-    <form onSubmit={handleSubmit} className="meal-form">
+    <form onSubmit={handleSubmit} onInvalidCapture={handleInvalid} className="meal-form">
       <div className="form-section">
         <h3>Meal Details</h3>
 
@@ -185,7 +198,7 @@ function MealForm({ meal, onSave, onCancel, saving = false, onDirtyChange, targe
               onChange={(e) => handleFieldChange('servingsPerMeal', e.target.value ? parseFloat(e.target.value) : null)}
               onWheel={(e) => e.currentTarget.blur()}
               min="0.1"
-              step="0.1"
+              step="any"
               required
             />
           </div>
@@ -197,7 +210,7 @@ function MealForm({ meal, onSave, onCancel, saving = false, onDirtyChange, targe
                 id="scale-to"
                 type="number"
                 min="0.1"
-                step="0.1"
+                step="any"
                 value={scaleTo}
                 onChange={(e) => setScaleTo(e.target.value)}
                 onWheel={(e) => e.currentTarget.blur()}
