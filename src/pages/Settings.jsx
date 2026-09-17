@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppNav from '../components/AppNav.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { getProfile, updateProfile, getMeals, saveCurrentUser } from '../utils/api.js';
 import { mealsToCsv, mealsToJson, downloadText, datedFilename } from '../utils/exportData.js';
+import { reportInvalidField } from '../utils/formValidation.js';
 
 const TARGET_FIELDS = [
   ['calories', 'Daily calories', 'e.g. 2400'],
@@ -18,27 +19,35 @@ function Settings({ user, onLogout, onProfileChange }) {
   const [name, setName] = useState(user?.name || '');
   const [targets, setTargets] = useState({ calories: '', protein: '', carbs: '', fat: '' });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
 
+  const loadProfile = useCallback(async () => {
+    setLoading(true);
+    setLoadError('');
+    try {
+      const profile = await getProfile();
+      setName(profile.name);
+      setTargets({
+        calories: profile.targets.calories ?? '',
+        protein: profile.targets.protein ?? '',
+        carbs: profile.targets.carbs ?? '',
+        fat: profile.targets.fat ?? '',
+      });
+    } catch (error) {
+      // The form must not render when the current values are unknown.
+      // A blank form invites the user to save empty targets over the ones
+      // already stored.
+      setLoadError(error.message || 'Could not load your settings.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    (async () => {
-      try {
-        const profile = await getProfile();
-        setName(profile.name);
-        setTargets({
-          calories: profile.targets.calories ?? '',
-          protein: profile.targets.protein ?? '',
-          carbs: profile.targets.carbs ?? '',
-          fat: profile.targets.fat ?? '',
-        });
-      } catch (error) {
-        toast.error(error.message || 'Could not load your profile.');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [toast]);
+    loadProfile();
+  }, [loadProfile]);
 
   const handleSave = async (event) => {
     event.preventDefault();
@@ -88,8 +97,15 @@ function Settings({ user, onLogout, onProfileChange }) {
 
         {loading ? (
           <div className="loading">Loading settings...</div>
+        ) : loadError ? (
+          <div className="form-section">
+            <div className="error-message">{loadError}</div>
+            <button type="button" className="btn btn-primary" onClick={loadProfile}>
+              Try again
+            </button>
+          </div>
         ) : (
-          <form onSubmit={handleSave} className="meal-form">
+          <form onSubmit={handleSave} onInvalidCapture={reportInvalidField(toast)} className="meal-form">
             <div className="form-section">
               <h3>Profile</h3>
               <div className="form-row form-row-1">
