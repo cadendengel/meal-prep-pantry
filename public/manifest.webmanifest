@@ -1,0 +1,13 @@
+{
+  "name": "Meal Prep Pantry",
+  "short_name": "Pantry",
+  "description": "Track meals, ingredients and macros, with store links and a shopping list.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

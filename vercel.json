@@ -9,6 +9,10 @@
       "destination": "/api/meal?id=:id"
     },
     {
+      "source": "/api/ingredients/:id",
+      "destination": "/api/ingredient?id=:id"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
