@@ -1,4 +1,6 @@
-import { test, expect, seedMeal, seedPantryItem } from '../fixtures.js';
+import {
+  test, expect, seedMeal, seedPantryItem, fillAndSettle,
+} from '../fixtures.js';
 
 /**
  * Narrow-screen behaviour. Runs under the "mobile" project, at iPhone size.
@@ -58,12 +60,12 @@ test.describe('mobile layout', () => {
     await seedPantryItem(api, account.token);
     await page.goto('/meal/new');
 
-    await page.getByLabel('Meal Name').fill('Phone Meal');
-    await page.getByLabel('Servings Per Meal').fill('2');
+    await fillAndSettle(page.getByLabel('Meal Name'), 'Phone Meal');
+    await fillAndSettle(page.getByLabel('Servings Per Meal'), '2');
     await page.getByRole('button', { name: 'Add from pantry' }).click();
     await page.getByRole('checkbox').first().check();
     await page.getByRole('button', { name: /Add 1 to meal/ }).click();
-    await page.getByLabel('Amount used (g)').fill('45');
+    await fillAndSettle(page.getByLabel('Amount used (g)'), '45');
 
     const save = page.waitForResponse(
       (r) => r.url().includes('/api/meals') && r.request().method() === 'POST'

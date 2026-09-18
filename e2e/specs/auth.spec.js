@@ -1,4 +1,6 @@
-import { test, expect, uniqueEmail, TEST_PASSWORD } from '../fixtures.js';
+import {
+  test, expect, uniqueEmail, TEST_PASSWORD, fillAndSettle,
+} from '../fixtures.js';
 
 test.describe('authentication', () => {
   test('registers, lands on the dashboard, and survives a reload', async ({ page }) => {
@@ -6,9 +8,9 @@ test.describe('authentication', () => {
 
     await page.goto('/');
     await page.getByRole('button', { name: 'Create one' }).click();
-    await page.getByLabel('Name').fill('New Person');
-    await page.getByLabel('Email').fill(email);
-    await page.getByLabel('Password').fill(TEST_PASSWORD);
+    await fillAndSettle(page.getByLabel('Name'), 'New Person');
+    await fillAndSettle(page.getByLabel('Email'), email);
+    await fillAndSettle(page.getByLabel('Password'), TEST_PASSWORD);
     await page.getByRole('button', { name: 'Create Account' }).click();
 
     await expect(page).toHaveURL(/\/dashboard$/);
@@ -23,9 +25,9 @@ test.describe('authentication', () => {
   test('rejects a short password before calling the API', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Create one' }).click();
-    await page.getByLabel('Name').fill('Short Pass');
-    await page.getByLabel('Email').fill(uniqueEmail());
-    await page.getByLabel('Password').fill('12345');
+    await fillAndSettle(page.getByLabel('Name'), 'Short Pass');
+    await fillAndSettle(page.getByLabel('Email'), uniqueEmail());
+    await fillAndSettle(page.getByLabel('Password'), '12345');
     await page.getByRole('button', { name: 'Create Account' }).click();
 
     await expect(page.getByText(/at least 6 characters/i)).toBeVisible();
@@ -35,18 +37,22 @@ test.describe('authentication', () => {
   test('refuses a duplicate email', async ({ page, account }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Create one' }).click();
-    await page.getByLabel('Name').fill('Impostor');
-    await page.getByLabel('Email').fill(account.email);
-    await page.getByLabel('Password').fill(TEST_PASSWORD);
+    await fillAndSettle(page.getByLabel('Name'), 'Impostor');
+    await fillAndSettle(page.getByLabel('Email'), account.email);
+    await fillAndSettle(page.getByLabel('Password'), TEST_PASSWORD);
     await page.getByRole('button', { name: 'Create Account' }).click();
 
     await expect(page.getByText(/already exists/i)).toBeVisible();
   });
 
-  test('logs in, including with different spacing and case', async ({ page, account }) => {
+  test('logs in regardless of case', async ({ page, account }) => {
     await page.goto('/');
+    // Plain fill: an <input type="email"> strips surrounding whitespace by
+    // specification, so a settled value could never match one that has it.
+    // That also means the trimming cannot be exercised from here. The API
+    // handles it, and lib/__tests__ covers that.
     await page.getByLabel('Email').fill(`  ${account.email.toUpperCase()}  `);
-    await page.getByLabel('Password').fill(TEST_PASSWORD);
+    await fillAndSettle(page.getByLabel('Password'), TEST_PASSWORD);
     await page.getByRole('button', { name: 'Login', exact: true }).click();
 
     await expect(page).toHaveURL(/\/dashboard$/);
@@ -56,8 +62,8 @@ test.describe('authentication', () => {
     page, account,
   }) => {
     await page.goto('/');
-    await page.getByLabel('Email').fill(account.email);
-    await page.getByLabel('Password').fill('definitely-wrong');
+    await fillAndSettle(page.getByLabel('Email'), account.email);
+    await fillAndSettle(page.getByLabel('Password'), 'definitely-wrong');
     await page.getByRole('button', { name: 'Login', exact: true }).click();
 
     await expect(page.getByText('Invalid email or password')).toBeVisible();
@@ -104,7 +110,7 @@ test.describe('authentication', () => {
     await page.getByRole('link', { name: /Forgot your password/i }).click();
     await expect(page).toHaveURL(/\/forgot-password$/);
 
-    await page.getByLabel('Email').fill('nobody-at-all@example.invalid');
+    await fillAndSettle(page.getByLabel('Email'), 'nobody-at-all@example.invalid');
     await page.getByRole('button', { name: /Send reset link/i }).click();
 
     // The same wording regardless of whether the account exists, so the
