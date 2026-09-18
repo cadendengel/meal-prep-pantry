@@ -68,6 +68,14 @@ is exercised here too. The handlers are the real ones, not stubs.
 - **Never use `.all()` on a list that loads asynchronously** without first
   asserting its count. `.all()` takes an immediate snapshot and does not
   retry, unlike every other Playwright locator method.
+- **Use `fillAndSettle` when a submit follows a fill.** These are
+  controlled inputs, so the state a submit handler reads is set during the
+  render after `fill`. Clicking Save immediately can send the previous
+  value, which surfaces later as a puzzling empty or stale field rather
+  than as an obvious race. Plain `fill` is fine when the test only asserts
+  on what is displayed.
+- **Assert the request payload for anything that saves.** A stale value is
+  then reported at its cause instead of as a confusing later symptom.
 
 ## Projects
 
@@ -90,6 +98,39 @@ is exercised here too. The handlers are the real ones, not stubs.
 | `unsaved-changes.spec.js` | The dirty guard on new and existing meals |
 | `accessibility.spec.js` | Label association, keyboard sorting, `aria-sort`, focus trapping |
 | `mobile.spec.js` | Card layout, no horizontal overflow, collapsed nav, saving on a phone |
+| `ocr.spec.js` | Label scanning and the paste-text path, with recognition stubbed |
+| `ocr-real.spec.js` | The real tesseract.js integration. Skipped by default |
+
+## OCR
+
+Real OCR output varies with fonts, lighting and compression, so it cannot
+act as a regression signal. `ocr.spec.js` swaps `tesseract.js` for
+`e2e/stubs/tesseract.js` through a Vite alias in `vite.config.e2e.js`, and
+the test chooses what recognition returns:
+
+```js
+await setOcrResult(page, { text: OCR_FULL_LABEL });
+await uploadLabelImage(page);
+```
+
+Everything around recognition stays real: file-type validation, decoding
+the image onto a canvas, the progress indicator, parsing, applying values
+to the form, error handling and worker termination. The stub also records
+its calls, so a test can assert the worker was terminated rather than
+leaked.
+
+Stubbing means nothing would notice if the tesseract.js API changed, so
+`ocr-real.spec.js` covers that separately against the real library:
+
+```bash
+E2E_REAL_OCR=1 npm run test:e2e -- ocr-real.spec.js
+```
+
+It renders a clean label to a PNG, scans it, and asserts only the calories
+figure. Asserting every field would turn it into a test of OCR accuracy
+rather than of the integration. It downloads language data on first run and
+takes tens of seconds, which is why it is not part of the default suite or
+of CI.
 
 ## Checking that a test can fail
 
