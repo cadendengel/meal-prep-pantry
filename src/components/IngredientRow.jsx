@@ -76,6 +76,8 @@ function IngredientRow({ ingredient, index, onUpdate, onDelete, defaultExpanded 
     setIsProcessingOCR(true);
     setOcrProgress(0);
 
+    let worker = null;
+
     try {
       const imageUrl = URL.createObjectURL(file);
       const img = new Image();
@@ -91,14 +93,13 @@ function IngredientRow({ ingredient, index, onUpdate, onDelete, defaultExpanded 
       canvas.getContext('2d').drawImage(img, 0, 0);
       URL.revokeObjectURL(imageUrl);
 
-      const worker = await createWorker('eng', 1, {
+      worker = await createWorker('eng', 1, {
         logger: (m) => {
           if (m.status === 'recognizing text') setOcrProgress(Math.round(m.progress * 100));
         },
       });
 
       const { data: { text } } = await worker.recognize(canvas);
-      await worker.terminate();
 
       applyNutritionFromText(
         text,
@@ -107,6 +108,16 @@ function IngredientRow({ ingredient, index, onUpdate, onDelete, defaultExpanded 
     } catch (error) {
       toast.error(`Could not process the image: ${error.message}`);
     } finally {
+      // A worker holds a WebAssembly instance and a thread. Terminating it
+      // only on the success path leaks one per failed scan, and a few bad
+      // photos in a row are exactly when that happens.
+      if (worker) {
+        try {
+          await worker.terminate();
+        } catch (terminateError) {
+          console.error('Could not terminate the OCR worker:', terminateError);
+        }
+      }
       setIsProcessingOCR(false);
       setOcrProgress(0);
     }

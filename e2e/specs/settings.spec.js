@@ -1,4 +1,4 @@
-import { test, expect, seedMeal } from '../fixtures.js';
+import { test, expect, seedMeal, fillAndSettle } from '../fixtures.js';
 
 test.describe('settings', () => {
   test('saves macro targets and applies them elsewhere', async ({
@@ -16,8 +16,8 @@ test.describe('settings', () => {
     await page.goto('/settings');
     // Confirm the profile finished loading before typing into the form.
     await expect(page.getByLabel('Display name')).toHaveValue('E2E User');
-    await page.getByLabel('Daily calories').fill('2000');
-    await page.getByLabel('Daily protein (g)').fill('100');
+    await fillAndSettle(page.getByLabel('Daily calories'), '2000');
+    await fillAndSettle(page.getByLabel('Daily protein (g)'), '100');
 
     // These are controlled inputs. Reading the value back confirms React
     // has committed the state that the save handler will read, rather than
@@ -52,7 +52,7 @@ test.describe('settings', () => {
   test('rejects a target that is not a number', async ({ signedInPage: page }) => {
     await page.goto('/settings');
     // The field is type=number, so the browser refuses letters outright.
-    await page.getByLabel('Daily protein (g)').fill('-5');
+    await fillAndSettle(page.getByLabel('Daily protein (g)'), '-5');
     await page.getByRole('button', { name: 'Save settings' }).click();
     await expect(page.locator('.toast-error')).toBeVisible();
   });
@@ -62,14 +62,20 @@ test.describe('settings', () => {
     // The profile loads asynchronously. Waiting for the loaded value keeps
     // the fetch from landing on top of what the test types.
     await expect(page.getByLabel('Display name')).toHaveValue('E2E User');
-    await page.getByLabel('Display name').fill('Renamed Person');
+    await fillAndSettle(page.getByLabel('Display name'), 'Renamed Person');
 
     // Wait on the request rather than on a toast, so a slow save reads as
     // slow rather than as a missing element.
+    const request = page.waitForRequest(
+      (r) => r.url().includes('/api/user/profile') && r.method() === 'PUT'
+    );
     const save = page.waitForResponse(
       (r) => r.url().includes('/api/user/profile') && r.request().method() === 'PUT'
     );
     await page.getByRole('button', { name: 'Save settings' }).click();
+
+    expect(JSON.parse((await request).postData()).name,
+      'the typed name must reach the server').toBe('Renamed Person');
     expect((await save).status()).toBe(200);
 
     await expect(page.locator('.user-name')).toContainText('Renamed Person');

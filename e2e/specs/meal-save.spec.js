@@ -1,4 +1,4 @@
-import { test, expect, seedPantryItem } from '../fixtures.js';
+import { test, expect, seedPantryItem, fillAndSettle } from '../fixtures.js';
 
 /**
  * The save path.
@@ -17,8 +17,8 @@ test.describe('saving a meal', () => {
     await seedPantryItem(api, account.token);
 
     await page.goto('/meal/new');
-    await page.getByLabel('Meal Name').fill('Grams Entry Meal');
-    await page.getByLabel('Servings Per Meal').fill('2');
+    await fillAndSettle(page.getByLabel('Meal Name'), 'Grams Entry Meal');
+    await fillAndSettle(page.getByLabel('Servings Per Meal'), '2');
 
     await page.getByRole('button', { name: 'Add from pantry' }).click();
     await page.getByRole('checkbox').first().check();
@@ -26,7 +26,7 @@ test.describe('saving a meal', () => {
 
     // 50 g of a 32 g serving is 1.5625 servings. That is the value that
     // used to be rejected.
-    await page.getByLabel('Amount used (g)').fill('50');
+    await fillAndSettle(page.getByLabel('Amount used (g)'), '50');
     await expect(page.getByLabel('Servings used')).toHaveValue('1.5625');
 
     const saveRequest = page.waitForResponse(
@@ -44,12 +44,12 @@ test.describe('saving a meal', () => {
   }) => {
     await seedPantryItem(api, account.token);
     await page.goto('/meal/new');
-    await page.getByLabel('Meal Name').fill('Validity Meal');
-    await page.getByLabel('Servings Per Meal').fill('3');
+    await fillAndSettle(page.getByLabel('Meal Name'), 'Validity Meal');
+    await fillAndSettle(page.getByLabel('Servings Per Meal'), '3');
     await page.getByRole('button', { name: 'Add from pantry' }).click();
     await page.getByRole('checkbox').first().check();
     await page.getByRole('button', { name: /Add 1 to meal/ }).click();
-    await page.getByLabel('Amount used (g)').fill('47');
+    await fillAndSettle(page.getByLabel('Amount used (g)'), '47');
 
     // Ask the browser directly, rather than inferring from behaviour.
     const invalid = await page.evaluate(() =>
@@ -65,14 +65,14 @@ test.describe('saving a meal', () => {
   }) => {
     await seedPantryItem(api, account.token);
     await page.goto('/meal/new');
-    await page.getByLabel('Meal Name').fill('Scaled Meal');
-    await page.getByLabel('Servings Per Meal').fill('2');
+    await fillAndSettle(page.getByLabel('Meal Name'), 'Scaled Meal');
+    await fillAndSettle(page.getByLabel('Servings Per Meal'), '2');
     await page.getByRole('button', { name: 'Add from pantry' }).click();
     await page.getByRole('checkbox').first().check();
     await page.getByRole('button', { name: /Add 1 to meal/ }).click();
     // 50 g of a 32 g serving is 1.5625 servings, deliberately not a round
     // number, so the scaled result is not a multiple of 0.1 either.
-    await page.getByLabel('Amount used (g)').fill('50');
+    await fillAndSettle(page.getByLabel('Amount used (g)'), '50');
 
     // Scoped by the heading, because the Cost section also contains the
     // words "Per Serving".
@@ -81,7 +81,7 @@ test.describe('saving a meal', () => {
     });
     const perServingBefore = await perServingSection.locator('.macro-item').allInnerTexts();
 
-    await page.getByLabel('Scale recipe to').fill('3');
+    await fillAndSettle(page.getByLabel('Scale recipe to'), '3');
     await page.getByRole('button', { name: 'Scale', exact: true }).click();
 
     // Wait for the toast, which only appears once the scale has been
@@ -112,8 +112,8 @@ test.describe('saving a meal', () => {
     signedInPage: page,
   }) => {
     await page.goto('/meal/new');
-    await page.getByLabel('Meal Name').fill('Bad Servings');
-    await page.getByLabel('Servings Per Meal').fill('2');
+    await fillAndSettle(page.getByLabel('Meal Name'), 'Bad Servings');
+    await fillAndSettle(page.getByLabel('Servings Per Meal'), '2');
 
     // Drive the field out of range the way a stale value could.
     await page.evaluate(() => {
@@ -134,7 +134,7 @@ test.describe('saving a meal', () => {
 
     await page.goto(`/meal/${meal.id}/edit`);
     await expect(page.getByLabel('Meal Name')).toHaveValue('Before Edit');
-    await page.getByLabel('Meal Name').fill('After Edit');
+    await fillAndSettle(page.getByLabel('Meal Name'), 'After Edit');
 
     const put = page.waitForResponse(
       (r) => r.url().includes('/api/meal?') && r.request().method() === 'PUT'

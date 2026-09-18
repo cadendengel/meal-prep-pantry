@@ -165,4 +165,86 @@ export async function seedMeal(api, token, overrides = {}) {
   return (await response.json()).meal;
 }
 
+/**
+ * A real 2x2 PNG.
+ *
+ * The upload path draws the file onto a canvas before recognition, so the
+ * bytes must decode as an image. Content does not matter, because the OCR
+ * result is chosen by the test.
+ */
+export const TINY_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEklEQVR4nGP8//8/AzbAhFVsMEkDAOndA/0ZqAOmAAAAAElFTkSuQmCC',
+  'base64'
+);
+
+/** A nutrition label as OCR would return it, in full. */
+export const OCR_FULL_LABEL = `Nutrition Facts
+Serving size 45 g
+Servings Per Container 8
+Calories 170
+Total Fat 3g
+Saturated Fat 0.5g
+Total Carbohydrate 29g
+Dietary Fiber 4g
+Protein 6g`;
+
+/**
+ * Point the stubbed OCR at a given result before an upload.
+ *
+ * @param {import('@playwright/test').Page} page - The page under test
+ * @param {object} settings - text, throwOnCreate, throwOnRecognize, errorMessage, delayMs
+ * @returns {Promise<void>} Resolves once the stub is configured
+ */
+export async function setOcrResult(page, settings) {
+  await page.evaluate((value) => {
+    window.__E2E_OCR__ = value;
+    window.__E2E_OCR_CALLS__ = [];
+  }, settings);
+}
+
+/**
+ * Read what the stubbed OCR was asked to do.
+ *
+ * @param {import('@playwright/test').Page} page - The page under test
+ * @returns {Promise<Array<{type: string}>>} Recorded calls in order
+ */
+export async function getOcrCalls(page) {
+  return page.evaluate(() => window.__E2E_OCR_CALLS__ || []);
+}
+
+/**
+ * Upload a file to an ingredient row's hidden label-scan input.
+ *
+ * @param {import('@playwright/test').Page} page - The page under test
+ * @param {{name?: string, mimeType?: string, buffer?: Buffer}} [file] - File to send
+ * @returns {Promise<void>} Resolves once the file is set
+ */
+export async function uploadLabelImage(page, file = {}) {
+  await page.locator('input[type="file"]').first().setInputFiles({
+    name: file.name ?? 'label.png',
+    mimeType: file.mimeType ?? 'image/png',
+    buffer: file.buffer ?? TINY_PNG,
+  });
+}
+
+/**
+ * Fill a control and wait until the value has been committed.
+ *
+ * These are controlled inputs. `fill` dispatches the event, but the React
+ * state a submit handler reads is set during the render that follows.
+ * Clicking Save immediately after filling can therefore send the previous
+ * value. Reading the value back proves the render happened.
+ *
+ * Use this wherever a submit follows a fill. Plain `fill` is fine when the
+ * test only asserts on what is displayed.
+ *
+ * @param {import('@playwright/test').Locator} locator - The control
+ * @param {string} value - Value to enter
+ * @returns {Promise<void>} Resolves once the value is committed
+ */
+export async function fillAndSettle(locator, value) {
+  await locator.fill(value);
+  await expect(locator).toHaveValue(value);
+}
+
 export { expect };

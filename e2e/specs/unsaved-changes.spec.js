@@ -1,9 +1,11 @@
-import { test, expect, seedMeal, seedPantryItem } from '../fixtures.js';
+import {
+  test, expect, seedMeal, seedPantryItem, fillAndSettle,
+} from '../fixtures.js';
 
 test.describe('unsaved changes', () => {
   test('warns before leaving a meal with edits', async ({ signedInPage: page }) => {
     await page.goto('/meal/new');
-    await page.getByLabel('Meal Name').fill('Half Finished');
+    await fillAndSettle(page.getByLabel('Meal Name'), 'Half Finished');
 
     await page.getByRole('button', { name: 'Cancel' }).click();
 
@@ -19,7 +21,7 @@ test.describe('unsaved changes', () => {
 
   test('leaves when the warning is accepted', async ({ signedInPage: page }) => {
     await page.goto('/meal/new');
-    await page.getByLabel('Meal Name').fill('Abandoned');
+    await fillAndSettle(page.getByLabel('Meal Name'), 'Abandoned');
 
     await page.getByRole('button', { name: 'Cancel' }).click();
     await page.getByRole('button', { name: 'Discard and leave' }).click();
@@ -39,8 +41,8 @@ test.describe('unsaved changes', () => {
   test('does not warn after a successful save', async ({ signedInPage: page, api, account }) => {
     await seedPantryItem(api, account.token);
     await page.goto('/meal/new');
-    await page.getByLabel('Meal Name').fill('Saved Then Left');
-    await page.getByLabel('Servings Per Meal').fill('2');
+    await fillAndSettle(page.getByLabel('Meal Name'), 'Saved Then Left');
+    await fillAndSettle(page.getByLabel('Servings Per Meal'), '2');
 
     await page.getByRole('button', { name: 'Save Meal' }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
@@ -63,7 +65,7 @@ test.describe('unsaved changes', () => {
     });
     expect(before).toBe(true);
 
-    await page.getByLabel('Meal Name').fill('Dirty Now');
+    await fillAndSettle(page.getByLabel('Meal Name'), 'Dirty Now');
     // The effect runs on the change, so the listener is added by now.
     await expect
       .poll(() => page.evaluate(() => window.__checkRegistered()))
@@ -74,7 +76,7 @@ test.describe('unsaved changes', () => {
     const meal = await seedMeal(api, account.token, { name: 'Existing' });
     await page.goto(`/meal/${meal.id}/edit`);
 
-    await page.getByLabel('Meal Name').fill('Existing Edited');
+    await fillAndSettle(page.getByLabel('Meal Name'), 'Existing Edited');
     await page.getByRole('button', { name: 'Cancel' }).click();
     await expect(page.getByRole('alertdialog')).toBeVisible();
   });

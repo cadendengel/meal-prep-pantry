@@ -1,4 +1,6 @@
-import { test, expect, seedMeal } from '../fixtures.js';
+import {
+  test, expect, seedMeal, fillAndSettle,
+} from '../fixtures.js';
 
 function ingredient(overrides) {
   return {
@@ -53,9 +55,9 @@ test.describe('dashboard', () => {
     await page.goto('/dashboard');
     await expect(page.locator('.meal-card')).toHaveCount(2);
 
-    await page.getByLabel('Search meals').fill('high');
+    await fillAndSettle(page.getByLabel('Search meals'), 'high');
     await expect(page.locator('.meal-card')).toHaveCount(1);
-    await page.getByLabel('Search meals').fill('');
+    await fillAndSettle(page.getByLabel('Search meals'), '');
 
     await page.getByLabel('High protein only (30g+)').check();
     await expect(page.locator('.meal-card')).toHaveCount(1);

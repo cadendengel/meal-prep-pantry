@@ -112,6 +112,14 @@ an in-memory MongoDB that starts and stops with the run. They exist because
 a form-submission bug once made saving a meal impossible while every unit
 test still passed. See [e2e/README.md](e2e/README.md).
 
+Label scanning is tested with recognition stubbed, because real OCR output
+varies too much to act as a regression signal. The real tesseract.js
+integration has its own opt-in test:
+
+```bash
+E2E_REAL_OCR=1 npm run test:e2e -- ocr-real.spec.js
+```
+
 First run only:
 
 ```bash
@@ -241,6 +249,7 @@ meal-prep-pantry/
 │   ├── run.js                # Starts the database, the server, then Playwright
 │   ├── vercel-api-plugin.js  # Serves api/ the way Vercel functions do
 │   ├── fixtures.js           # Per-test accounts and seeding helpers
+│   ├── stubs/                # tesseract.js stand-in, for deterministic OCR
 │   └── specs/
 ├── index.html
 ├── vercel.json
